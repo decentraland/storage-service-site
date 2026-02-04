@@ -6,16 +6,15 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-
+      - uses: actions/checkout@v6
       - name: Use Node.js 24.x
-        uses: actions/setup-node@v4.0.1
+        uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "npm"
+          cache: 'npm'
 
       - name: Install
-        run: npm install
+        run: npm ci
 
       - name: Audit signatures
         run: npm audit signatures
