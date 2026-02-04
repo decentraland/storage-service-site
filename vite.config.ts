@@ -24,6 +24,11 @@ export default defineConfig(({ command, mode }) => {
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html']
+      },
+      server: {
+        deps: {
+          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas']
+        }
       }
     },
     server: {

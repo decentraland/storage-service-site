@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import { type RenderOptions, render as rtlRender } from '@testing-library/react'
+import { DclThemeProvider, darkTheme } from 'decentraland-ui2'
 import { type RootState, setupStore } from '@/app/store'
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
@@ -18,7 +19,9 @@ const renderWithProviders = (
 
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <DclThemeProvider theme={darkTheme}>
+        <BrowserRouter>{children}</BrowserRouter>
+      </DclThemeProvider>
     </Provider>
   )
 
