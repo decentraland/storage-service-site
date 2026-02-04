@@ -1,5 +1,5 @@
 {
-  "name": "@dcl/Storage Service UI-site",
+  "name": "@dcl/storage-service-site",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/decentraland/Storage Service UI.git"
+    "url": "git+ssh://git@github.com/decentraland/storage-service-site.git"
   },
   "keywords": [
     "decentraland",
