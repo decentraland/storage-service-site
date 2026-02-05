@@ -15,6 +15,9 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src')
       }
     },
+    build: {
+      sourcemap: false
+    },
     ...(command === 'build' ? { base: envVariables.VITE_BASE_URL } : undefined),
     test: {
       globals: true,

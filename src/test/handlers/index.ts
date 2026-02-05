@@ -1,4 +1,5 @@
 import { HttpResponse, http } from 'msw'
+import { envHandlers } from './env.handlers'
 import { permissionsHandlers } from './permissions.handlers'
 
 // Base handlers - will be extended by feature-specific handlers
@@ -7,7 +8,8 @@ const handlers = [
   http.get('/health', () => {
     return HttpResponse.json({ status: 'ok' })
   }),
-  ...permissionsHandlers
+  ...permissionsHandlers,
+  ...envHandlers
 ]
 
 export { handlers }

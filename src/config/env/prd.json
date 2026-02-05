@@ -1,5 +1,6 @@
 {
   "AUTH_URL": "/auth",
   "PEER_URL": "https://peer.decentraland.org",
-  "WORLDS_CONTENT_SERVER_URL": "https://worlds-content-server.decentraland.org"
+  "WORLDS_CONTENT_SERVER_URL": "https://worlds-content-server.decentraland.org",
+  "STORAGE_API_URL": "https://worlds-content-server.decentraland.org"
 }
