@@ -18,7 +18,9 @@ const suppressPatterns = [
   'An update to null inside a test was not wrapped in act',
   'An update to %s inside a test was not wrapped in act',
   // CSS pseudo-class warnings from emotion/MUI
-  'potentially unsafe when doing server-side rendering'
+  'potentially unsafe when doing server-side rendering',
+  // CSS parsing errors from jsdom (doesn't support all CSS features)
+  'Could not parse CSS stylesheet'
 ]
 
 const shouldSuppressMessage = (args: unknown[]): boolean => {

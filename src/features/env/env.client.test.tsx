@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { setupStore } from '@/app/store'
 import { resetEnvStore } from '@/test/handlers/env.handlers'
 import { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from './env.client'
+import type { EnvKey } from './env.types'
 
 const createWrapper = () => {
   const store = setupStore()
@@ -26,8 +27,8 @@ describe('env client', () => {
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
         expect(result.current.data).toHaveLength(2)
-        expect(result.current.data?.map(k => k.key)).toContain('API_KEY')
-        expect(result.current.data?.map(k => k.key)).toContain('DATABASE_URL')
+        expect(result.current.data?.map((k: EnvKey) => k.key)).toContain('API_KEY')
+        expect(result.current.data?.map((k: EnvKey) => k.key)).toContain('DATABASE_URL')
       })
     })
   })

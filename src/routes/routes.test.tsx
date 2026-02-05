@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderWithProviders } from '@/test/utils'
 import { AppRoutes } from './routes'
@@ -29,8 +29,11 @@ describe('AppRoutes', () => {
       renderWithProviders(<AppRoutes />, { route: '/env' })
     })
 
-    it('should render the env page placeholder', () => {
-      expect(screen.getByRole('heading', { name: /environment variables/i })).toBeInTheDocument()
+    it('should render the env page', async () => {
+      // Wait for loading to complete and heading to appear
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /environment variables/i })).toBeInTheDocument()
+      })
     })
   })
 
