@@ -34,9 +34,11 @@ export default defineConfig(({ command, mode }) => {
     server: {
       proxy: {
         '/auth': {
-          target: 'https://decentraland.zone/auth',
+          target: 'https://decentraland.zone',
+          followRedirects: true,
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/auth/, '')
+          secure: false,
+          ws: true
         }
       }
     }
