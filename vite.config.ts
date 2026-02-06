@@ -30,7 +30,7 @@ export default defineConfig(({ command, mode }) => {
       },
       server: {
         deps: {
-          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas']
+          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas', 'decentraland-connect']
         }
       }
     },

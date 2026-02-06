@@ -1,13 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { resetEnvStore } from '@/test/handlers/env.handlers'
+import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { EnvPage } from './EnvPage'
 
 describe('EnvPage', () => {
   beforeEach(() => {
-    resetEnvStore()
+    resetStorageApiStores()
   })
 
   describe('when loading env keys', () => {

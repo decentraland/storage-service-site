@@ -1,17 +1,15 @@
 import { HttpResponse, http } from 'msw'
-import { envHandlers } from './env.handlers'
+import { assetsHandlers } from './assets.handlers'
 import { permissionsHandlers } from './permissions.handlers'
-import { sceneHandlers } from './scene.handlers'
+import { resetStorageApiStores, storageApiHandlers } from './storage-api.handlers'
 
-// Base handlers - will be extended by feature-specific handlers
 const handlers = [
-  // Health check endpoint
   http.get('/health', () => {
     return HttpResponse.json({ status: 'ok' })
   }),
   ...permissionsHandlers,
-  ...envHandlers,
-  ...sceneHandlers
+  ...storageApiHandlers,
+  ...assetsHandlers
 ]
 
-export { handlers }
+export { handlers, resetStorageApiStores }

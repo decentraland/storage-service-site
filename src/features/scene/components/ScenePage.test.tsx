@@ -1,13 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { resetSceneStore } from '@/test/handlers/scene.handlers'
+import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { ScenePage } from './ScenePage'
 
 describe('ScenePage', () => {
   beforeEach(() => {
-    resetSceneStore()
+    resetStorageApiStores()
   })
 
   describe('when loading scene keys', () => {
