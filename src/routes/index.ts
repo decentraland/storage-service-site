@@ -1,1 +1,1 @@
-export { AppRoutes } from './routes'
+export { AppRoutes, RootRedirect } from './routes'
