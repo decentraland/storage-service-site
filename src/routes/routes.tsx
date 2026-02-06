@@ -4,7 +4,6 @@ import { NotFound } from '@/pages/NotFound'
 import { Players } from '@/pages/Players'
 import { Scene } from '@/pages/Scene'
 import { SelectPage } from '@/pages/Select'
-import { StorageGate } from '@/pages/Storage'
 
 /**
  * Root redirect component.
@@ -28,7 +27,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/select" element={<SelectPage />} />
-      <Route path="/storage" element={<StorageGate />} />
       <Route path="/env" element={<Env />} />
       <Route path="/scene" element={<Scene />} />
       <Route path="/players" element={<Players />} />

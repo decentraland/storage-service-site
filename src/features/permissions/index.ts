@@ -1,3 +1,6 @@
+// Provider
+export { PermissionsProvider } from './PermissionsProvider'
+
 // Client hooks
 export { permissionsClient, useGetParcelOperatorsQuery, useGetRealmPermissionsQuery } from './permissions.client'
 
