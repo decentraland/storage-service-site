@@ -55,8 +55,10 @@ describe('AppRoutes', () => {
       renderWithProviders(<AppRoutes />, { route: '/players' })
     })
 
-    it('should render the players page placeholder', () => {
-      expect(screen.getByRole('heading', { name: /player storage/i })).toBeInTheDocument()
+    it('should render the players page', async () => {
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /player storage/i })).toBeInTheDocument()
+      })
     })
   })
 })

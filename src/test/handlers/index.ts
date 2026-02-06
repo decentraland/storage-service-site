@@ -1,5 +1,4 @@
 import { HttpResponse, http } from 'msw'
-import { assetsHandlers } from './assets.handlers'
 import { permissionsHandlers } from './permissions.handlers'
 import { resetStorageApiStores, storageApiHandlers } from './storage-api.handlers'
 
@@ -8,8 +7,7 @@ const handlers = [
     return HttpResponse.json({ status: 'ok' })
   }),
   ...permissionsHandlers,
-  ...storageApiHandlers,
-  ...assetsHandlers
+  ...storageApiHandlers
 ]
 
 export { handlers, resetStorageApiStores }
