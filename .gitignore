@@ -29,8 +29,6 @@ dist-ssr
 .agents/
 .claude/
 .cursor/
-docs/
-AGENTS.md
 
 # MSW auto-generated service worker
 public/mockServiceWorker.js

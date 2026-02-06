@@ -1,0 +1,133 @@
+# AI Agent Instructions
+
+## Project Overview
+
+Storage Service UI - A Decentraland dApp for managing World and Player storage (environment variables, scene data, player data).
+
+## Compound Documents
+
+Before making changes, read the relevant compound docs in `docs/compounds/`:
+
+| Document                                          | When to Read                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------- |
+| [architecture.md](docs/compounds/architecture.md) | Understanding project structure, providers, folder conventions   |
+| [auth.md](docs/compounds/auth.md)                 | Working with authentication, wallet connection, identity         |
+| [testing.md](docs/compounds/testing.md)           | Writing tests, MSW handlers, Vitest configuration                |
+| [permissions.md](docs/compounds/permissions.md)   | Working with realm/parcel permission checks, PermissionsProvider |
+| [env.md](docs/compounds/env.md)                   | Working with environment variables storage feature               |
+| [scene.md](docs/compounds/scene.md)               | Working with scene (world) JSON storage feature                  |
+| [player.md](docs/compounds/player.md)             | Working with per-player JSON storage feature                     |
+| [storage.md](docs/compounds/storage.md)           | Storage UI pages, shared components, hooks, signed fetch         |
+| [assets.md](docs/compounds/assets.md)             | Asset selector (lands, worlds), SelectPage, subgraphs            |
+
+## Code Conventions
+
+### Features Pattern
+
+- Features are self-contained modules in `src/features/`
+- Only import from feature's `index.ts` barrel file
+- Each feature has: types, utils, components, tests
+
+```typescript
+// ✅ Correct
+import { useAuth, AuthProvider } from '@/features/auth'
+
+// ❌ Wrong
+import { useAuth } from '@/features/auth/AuthProvider'
+```
+
+### Component Structure
+
+```
+src/features/[feature]/
+├── index.ts           # Public exports only
+├── [Feature].tsx      # Main component
+├── [feature].types.ts # TypeScript interfaces
+├── [feature].utils.ts # Pure utility functions
+└── [feature].test.ts  # Tests
+```
+
+### Naming Conventions
+
+- Components: PascalCase (`AuthProvider.tsx`)
+- Types/Interfaces: PascalCase with descriptive suffix (`AuthContextValue`, `AuthConfig`)
+- Utilities: camelCase (`buildRedirectUrl`, `isIdentityValid`)
+- Event handlers: `handle` prefix (`handleClickSignIn`)
+- Test files: `.test.ts` or `.test.tsx` suffix
+
+## Testing Standards
+
+Follow Decentraland testing patterns:
+
+```typescript
+describe('when [condition]', () => {
+  beforeEach(() => {
+    /* setup */
+  })
+
+  describe('and [sub-condition]', () => {
+    it('should [expected behavior]', () => {
+      expect(result).toBe(expected)
+    })
+  })
+})
+```
+
+## Key Dependencies
+
+| Package                    | Version | Notes                        |
+| -------------------------- | ------- | ---------------------------- |
+| @dcl/single-sign-on-client | 0.1.0   | **Must be v0.1.0**, not v2.x |
+| decentraland-connect       | ^7.2.0  | Wallet connection            |
+| decentraland-crypto-fetch  | ^1.0.2  | Signed requests              |
+| decentraland-ui2           | ^0.15.0 | UI components                |
+
+## Common Tasks
+
+### Adding a New Feature
+
+1. Create folder: `src/features/[feature]/`
+2. Create files: `index.ts`, `[feature].types.ts`, `[feature].utils.ts`
+3. Write tests first (TDD)
+4. Implement feature
+5. Export from `index.ts`
+6. Update compound doc if significant
+
+### Adding API Endpoints
+
+1. Add to `src/services/client.ts` using RTK Query
+2. Add MSW handlers in `src/test/handlers/`
+3. Use `createAuthenticatedFetch` for signed requests
+
+### Modifying Auth Flow
+
+1. Read `docs/compounds/auth.md` first
+2. Check `jump-site` reference implementation if needed
+3. Test with actual auth flow (not just unit tests)
+
+### Adding Storage Operations
+
+1. Read [storage.md](docs/compounds/storage.md) for the storage UI layer and [env.md](docs/compounds/env.md), [scene.md](docs/compounds/scene.md), or [player.md](docs/compounds/player.md) for the relevant feature
+2. For RTK Query–based features: add endpoints in the feature's `*.client.ts`, add MSW handlers in `src/test/handlers/`, and use tag invalidation for cache updates
+3. For signed-fetch–based panels: use `useSignedFetch` and the helpers in `src/utils/storage-api.ts`
+
+## Environment
+
+- Dev server: `npm run dev` (port 5173)
+- Auth proxy: `/auth` → `https://decentraland.zone/auth`
+- Config: `src/config/env/{dev,stg,prd}.json`
+
+## PR Guidelines
+
+- Branch naming: `feat/[feature]`, `fix/[issue]`, `chore/[task]`
+- Commits must be GPG signed
+- Follow PR template in `.github/pull_request_template.md`
+- Include test coverage for new code
+
+## Don't
+
+- Don't use `@dcl/single-sign-on-client` v2.x
+- Don't import internal feature files (use barrel exports)
+- Don't skip tests
+- Don't hardcode environment URLs (use config)
+- Don't commit `.env` files
