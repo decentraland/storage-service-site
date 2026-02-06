@@ -42,8 +42,11 @@ describe('AppRoutes', () => {
       renderWithProviders(<AppRoutes />, { route: '/scene' })
     })
 
-    it('should render the scene page placeholder', () => {
-      expect(screen.getByRole('heading', { name: /scene storage/i })).toBeInTheDocument()
+    it('should render the scene page', async () => {
+      // Wait for loading to complete and heading to appear
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /scene storage/i })).toBeInTheDocument()
+      })
     })
   })
 
