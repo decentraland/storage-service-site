@@ -15,4 +15,6 @@ const healthHandler = http.get('/health', () => {
 
 const worker = setupWorker(healthHandler, ...worldsContentServerHandlers, ...permissionsHandlers, ...storageApiHandlers, ...assetsHandlers)
 
-export const startMockServiceWorker = (): Promise<void> => worker.start()
+export const startMockServiceWorker = async (): Promise<void> => {
+  await worker.start()
+}

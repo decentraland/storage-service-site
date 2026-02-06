@@ -81,7 +81,7 @@
   "bugs": {
     "url": "https://github.com/decentraland/storage-service-site/issues"
   },
-  "homepage": "https://cdn.decentraland.org/@dcl/storage-service-site/0.0.1",
+  "homepage": "https://decentraland.org/storage",
   "engines": {
     "node": ">=20",
     "npm": ">=8"
