@@ -1,6 +1,7 @@
 import { HttpResponse, http } from 'msw'
 import { permissionsHandlers } from './permissions.handlers'
 import { resetStorageApiStores, storageApiHandlers } from './storage-api.handlers'
+import { subgraphsHandlers } from './subgraphs.handlers'
 import { worldsContentServerHandlers } from './worlds-content-server.handlers'
 
 const handlers = [
@@ -9,7 +10,8 @@ const handlers = [
   }),
   ...worldsContentServerHandlers,
   ...permissionsHandlers,
-  ...storageApiHandlers
+  ...storageApiHandlers,
+  ...subgraphsHandlers
 ]
 
 export { handlers, resetStorageApiStores }

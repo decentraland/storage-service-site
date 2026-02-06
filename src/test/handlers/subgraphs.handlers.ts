@@ -1,7 +1,7 @@
 /**
  * MSW handlers for Decentraland subgraphs (GraphQL POST).
- * - Land Manager: parcels/estates (see creator-hub land.ts)
- * - Marketplace: DCL names / ENS (see creator-hub ens.ts)
+ * - Land Manager: parcels/estates
+ * - Marketplace: DCL names / ENS
  */
 import { HttpResponse, http } from 'msw'
 
@@ -9,7 +9,7 @@ const LAND_MANAGER_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/la
 const MARKETPLACE_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/marketplace'
 
 const subgraphsHandlers = [
-  // Land Manager Subgraph (POST with GraphQL query – GetLands / parcels, estates)
+  // Land Manager Subgraph (POST with GraphQL query)
   http.post(LAND_MANAGER_SUBGRAPH, async () => {
     return HttpResponse.json({
       data: {
@@ -58,7 +58,7 @@ const subgraphsHandlers = [
     })
   }),
 
-  // Marketplace Subgraph – DCL names (nfts where category: ens, ens.subdomain)
+  // Marketplace Subgraph – DCL names
   http.post(MARKETPLACE_SUBGRAPH, async () => {
     return HttpResponse.json({
       data: {
