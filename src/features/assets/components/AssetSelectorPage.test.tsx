@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { config } from '@/config'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
 import { AssetSelectorPage } from './AssetSelectorPage'
@@ -18,6 +19,11 @@ vi.mock('@/features/auth', () => ({
     chainId: 1,
     avatar: undefined
   })
+}))
+
+// Mock useSignedFetch so requests are made with fetch and MSW can intercept
+vi.mock('@/hooks/useSignedFetch', () => ({
+  useSignedFetch: () => (url: string, init?: RequestInit) => fetch(url, init)
 }))
 
 describe('AssetSelectorPage', () => {
@@ -120,7 +126,7 @@ describe('AssetSelectorPage', () => {
     it('should display empty state messages', async () => {
       // Override handlers to return empty data
       server.use(
-        http.post('https://subgraph.decentraland.org/decentraland/land-manager', () =>
+        http.post(config.get('LAND_MANAGER_SUBGRAPH'), () =>
           HttpResponse.json({
             data: {
               ownerParcels: [],
@@ -136,8 +142,8 @@ describe('AssetSelectorPage', () => {
             }
           })
         ),
-        http.post('https://subgraph.decentraland.org/decentraland/marketplace', () => HttpResponse.json({ data: { nfts: [] } })),
-        http.get('https://worlds-content-server.decentraland.zone/wallet/contribute', () => HttpResponse.json({ domains: [] }))
+        http.post(config.get('MARKETPLACE_SUBGRAPH'), () => HttpResponse.json({ data: { nfts: [] } })),
+        http.get(`${config.get('WORLDS_CONTENT_SERVER_URL')}/wallet/contribute`, () => HttpResponse.json({ domains: [] }))
       )
 
       renderWithProviders(<AssetSelectorPage />)

@@ -4,9 +4,10 @@
  * - Marketplace: DCL names / ENS
  */
 import { HttpResponse, http } from 'msw'
+import { config } from '@/config'
 
-const LAND_MANAGER_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/land-manager'
-const MARKETPLACE_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/marketplace'
+const LAND_MANAGER_SUBGRAPH = config.get('LAND_MANAGER_SUBGRAPH')
+const MARKETPLACE_SUBGRAPH = config.get('MARKETPLACE_SUBGRAPH')
 
 const subgraphsHandlers = [
   // Land Manager Subgraph (POST with GraphQL query)
