@@ -1,10 +1,11 @@
 import { config } from '@/config'
+import { type WrapSignedFetchError, wrapSignedFetch } from '@/lib/fetch'
 import { client } from '@/services/client'
 import { getLandQuery, transformLandQueryResult } from './assets.utils'
 import type { ContributableDomain, ContributableDomainsResponse, DCLNamesResponse, Land, LandQueryResponse } from './assets.types'
 
-const LAND_MANAGER_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/land-manager'
-const MARKETPLACE_SUBGRAPH = 'https://subgraph.decentraland.org/decentraland/marketplace'
+const LAND_MANAGER_SUBGRAPH = config.get('LAND_MANAGER_SUBGRAPH')
+const MARKETPLACE_SUBGRAPH = config.get('MARKETPLACE_SUBGRAPH')
 
 const assetsClient = client.injectEndpoints({
   endpoints: build => ({
@@ -47,18 +48,26 @@ const assetsClient = client.injectEndpoints({
       providesTags: ['UserDCLNames']
     }),
 
-    getContributableDomains: build.query<ContributableDomain[], { address: string }>({
-      query: () => ({
-        url: `${config.get('WORLDS_CONTENT_SERVER_URL')}/wallet/contribute`,
-        method: 'GET'
-      }),
-      transformResponse: (response: ContributableDomainsResponse) =>
-        response.domains.map(domain => ({
-          name: domain.name,
-          userPermissions: domain.user_permissions,
-          size: domain.size,
-          owner: domain.owner
-        })),
+    getContributableDomains: build.query<
+      ContributableDomain[],
+      { address: string; signedFetch: (url: string, init?: RequestInit) => Promise<Response> }
+    >({
+      queryFn: async ({ signedFetch }) => {
+        const url = `${config.get('WORLDS_CONTENT_SERVER_URL')}/wallet/contribute`
+        try {
+          const json = await wrapSignedFetch<ContributableDomainsResponse>(signedFetch, url)
+          const data: ContributableDomain[] = json.domains.map(domain => ({
+            name: domain.name,
+            userPermissions: domain.user_permissions,
+            size: domain.size,
+            owner: domain.owner
+          }))
+          return { data }
+        } catch (error) {
+          return { error: error as WrapSignedFetchError }
+        }
+      },
+      serializeQueryArgs: ({ queryArgs, endpointName }) => ({ endpointName, address: queryArgs.address }),
       providesTags: ['ContributableDomains']
     })
   })

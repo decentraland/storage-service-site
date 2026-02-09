@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, CircularProgress, Grid, Typography } from '@mui/material'
 import { useAuth } from '@/features/auth'
+import { useSignedFetch } from '@/hooks/useSignedFetch'
 import { useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery } from '../assets.client'
 import type { Land, World } from '../assets.types'
 import { getLandPosition } from '../assets.utils'
@@ -11,12 +12,16 @@ import { WorldCard } from './WorldCard'
 const AssetSelectorPage = () => {
   const navigate = useNavigate()
   const { wallet } = useAuth()
+  const signedFetch = useSignedFetch()
 
   const { data: lands, isLoading: landsLoading } = useGetUserLandsQuery({ address: wallet ?? '' }, { skip: !wallet })
 
   const { data: dclNames, isLoading: namesLoading } = useGetUserDCLNamesQuery({ address: wallet ?? '' }, { skip: !wallet })
 
-  const { data: contributable, isLoading: contribLoading } = useGetContributableDomainsQuery({ address: wallet ?? '' }, { skip: !wallet })
+  const { data: contributable, isLoading: contribLoading } = useGetContributableDomainsQuery(
+    { address: wallet ?? '', signedFetch },
+    { skip: !wallet }
+  )
 
   const isLoading = landsLoading || namesLoading || contribLoading
 

@@ -72,4 +72,32 @@ const createAuthenticatedFetch = (wallet?: string, isSignedIn?: boolean) => {
   }
 }
 
-export { createAuthenticatedFetch, isIdentityValid, signedFetch }
+/** Error shape thrown by wrapSignedFetch (RTK Query baseQuery–compatible) */
+type WrapSignedFetchError = { status: number; data?: unknown } | { status: 'FETCH_ERROR'; error: string }
+
+type SignedFetch = (url: string, init?: RequestInit) => Promise<Response>
+
+/**
+ * Wrapper around signedFetch: call fetch, check response.ok, parse JSON.
+ * Returns parsed JSON on success. Throws on non-OK or network error (caller can return { error } in catch).
+ */
+const wrapSignedFetch = async <T>(signedFetch: SignedFetch, url: string, init: RequestInit = { method: 'GET' }): Promise<T> => {
+  try {
+    const response = await signedFetch(url, init)
+    if (!response.ok) {
+      throw {
+        status: response.status,
+        data: await response.text().catch(() => undefined)
+      }
+    }
+    return (await response.json()) as T
+  } catch (error) {
+    if (error && typeof error === 'object' && 'status' in error) throw error
+    throw {
+      status: 'FETCH_ERROR' as const,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+}
+
+export { createAuthenticatedFetch, isIdentityValid, signedFetch, wrapSignedFetch, type WrapSignedFetchError, type SignedFetch }

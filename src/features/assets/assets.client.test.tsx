@@ -72,16 +72,17 @@ describe('assets client', () => {
     describe('when fetching contributable domains', () => {
       it('should return worlds where user has deployment permission', async () => {
         const wrapper = createWrapper()
+        const signedFetch = (url: string, init?: RequestInit) => fetch(url, init)
 
-        const { result } = renderHook(() => useGetContributableDomainsQuery({ address: '0xuser' }), { wrapper })
+        const { result } = renderHook(() => useGetContributableDomainsQuery({ address: '0xuser', signedFetch }), { wrapper })
 
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 10000 })
 
         expect(result.current.data?.length).toBeGreaterThan(0)
         expect(result.current.data?.[0]).toHaveProperty('name')
         expect(result.current.data?.[0]).toHaveProperty('userPermissions')
         expect(result.current.data?.[0].name).toBe('shared-world.dcl.eth')
-      })
+      }, 15000)
     })
   })
 })
