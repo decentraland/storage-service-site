@@ -9,6 +9,20 @@ vi.mock('@/features/auth', () => ({
   useAuth: () => ({ wallet: '0xtest', isSignedIn: true })
 }))
 
+vi.mock('@dcl/single-sign-on-client', () => ({
+  getIdentity: vi.fn().mockResolvedValue({
+    expiration: new Date(Date.now() + 86400000),
+    authChain: []
+  })
+}))
+
+vi.mock('decentraland-crypto-fetch', () => ({
+  default: (url: string, init: Record<string, unknown> = {}) => {
+    const { identity, metadata, ...fetchInit } = init
+    return fetch(url, fetchInit as RequestInit)
+  }
+}))
+
 describe('EnvPage', () => {
   beforeEach(() => {
     resetStorageApiStores()
