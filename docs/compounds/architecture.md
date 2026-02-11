@@ -19,6 +19,10 @@ Storage Service UI - A Decentraland dApp for managing World and Player storage (
 | @dcl/single-sign-on-client | 0.1.0      | Identity management       |
 | decentraland-crypto-fetch  | ^1.0.2     | Signed fetch requests     |
 
+## Data Fetching
+
+RTK Query is used for all server state. See [rtk-query.md](rtk-query.md) for signed vs non-signed request patterns, wrappers (`createQueryFetch`, `wrapSignedFetch`), and which feature clients use each pattern.
+
 ## Provider Hierarchy
 
 ```
@@ -45,6 +49,8 @@ src/
 │
 ├── components/             # Shared/reusable components
 │   ├── Layout/             # Shell layout (Navbar, Footer)
+│   ├── StorageDrawer/      # Collapsible persistent/mini Drawer (storage nav)
+│   ├── StorageLayout/      # StorageDrawer + content area wrapper
 │   ├── WorldStoragePanel/
 │   ├── PlayerStoragePanel/
 │   ├── StorageForm/
@@ -75,11 +81,9 @@ src/
 │   └── player/             # Player storage feature
 │
 ├── lib/                    # Utilities and helpers
-│   └── fetch.ts            # Signed fetch wrapper
+│   └── fetch.ts            # createQueryFetch, wrapSignedFetch
 ├── utils/
 │   └── storage-api.ts      # World/player storage API (signed fetch)
-├── hooks/
-│   └── useSignedFetch.ts   # Authenticated fetch for storage
 │
 ├── pages/                  # Route page components
 │   ├── Home/
@@ -95,6 +99,9 @@ src/
 │
 ├── routes/                 # Route definitions
 │   └── routes.tsx
+│
+├── intl/                   # Internationalization
+│   └── en.json             # English translation strings
 │
 ├── services/               # API clients
 │   └── client.ts           # RTK Query base client
@@ -171,6 +178,12 @@ server: {
 | `*`        | NotFound     | 404 fallback                                                                                   |
 
 **RootRedirect** (`src/routes/routes.tsx`): Reads `realm` and `position` from URL. If both missing, navigates to `/select`. If either present, navigates to `/env` preserving search params so Env/Scene/Players can use the same context.
+
+**StorageLayout** wraps `/env`, `/scene`, and `/players` routes. It renders a **StorageDrawer** (collapsible sidebar with nav links) alongside the active page content via `<Outlet />`.
+
+## i18n
+
+All user-facing strings use `useTranslation()` from `@dcl/hooks`. The `TranslationProvider` is set up in `App.tsx` wrapping the entire application. Translation keys are defined in `src/intl/en.json`.
 
 ## Roadmap (Phases)
 

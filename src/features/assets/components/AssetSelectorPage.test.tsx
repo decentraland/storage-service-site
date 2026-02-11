@@ -21,11 +21,6 @@ vi.mock('@/features/auth', () => ({
   })
 }))
 
-// Mock useSignedFetch so requests are made with fetch and MSW can intercept
-vi.mock('@/hooks/useSignedFetch', () => ({
-  useSignedFetch: () => (url: string, init?: RequestInit) => fetch(url, init)
-}))
-
 describe('AssetSelectorPage', () => {
   describe('when loading', () => {
     it('should display loading indicator', () => {

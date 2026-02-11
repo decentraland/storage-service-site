@@ -1,13 +1,10 @@
-import { useCallback, useState } from 'react'
-// eslint-disable-next-line @typescript-eslint/naming-convention
+import { useCallback, useEffect, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add'
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import DeleteIcon from '@mui/icons-material/Delete'
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
-// eslint-disable-next-line @typescript-eslint/naming-convention
-import VisibilityIcon from '@mui/icons-material/Visibility'
+import EditIcon from '@mui/icons-material/Edit'
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -27,65 +24,128 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { useTranslation } from '@dcl/hooks'
+import { useAuth } from '@/features/auth'
 import {
   useClearAllPlayersMutation,
   useClearPlayerMutation,
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
-  useListPlayersQuery,
   useSetPlayerValueMutation
 } from '../player.client'
 
-interface ViewDialogProps {
+interface EditDialogProps {
   address: string
   keyName: string
   open: boolean
   onClose: () => void
+  wallet?: string
+  isSignedIn?: boolean
 }
 
-const ViewDialog = ({ address, keyName, open, onClose }: ViewDialogProps) => {
-  const { data, isLoading } = useGetPlayerValueQuery({ address, key: keyName }, { skip: !open || !keyName || !address })
+const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: EditDialogProps) => {
+  const { t } = useTranslation()
+  const { data, isLoading } = useGetPlayerValueQuery({ wallet, isSignedIn, address, key: keyName }, { skip: !open || !keyName || !address })
+  const [setPlayerValue] = useSetPlayerValueMutation()
+  const [editValue, setEditValue] = useState('')
+  const [jsonError, setJsonError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (data?.value !== undefined) {
+      setEditValue(JSON.stringify(data.value, null, 2))
+      setJsonError(null)
+    }
+  }, [data?.value])
+
+  const handleValueChange = useCallback(
+    (value: string) => {
+      setEditValue(value)
+      try {
+        JSON.parse(value)
+        setJsonError(null)
+      } catch {
+        setJsonError(t('player_page.edit_dialog.json_error'))
+      }
+    },
+    [t]
+  )
+
+  const handleSave = useCallback(async () => {
+    if (editValue.trim()) {
+      try {
+        const parsedValue = JSON.parse(editValue.trim())
+        await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
+        onClose()
+      } catch {
+        setJsonError(t('player_page.edit_dialog.json_error'))
+      }
+    }
+  }, [editValue, address, keyName, setPlayerValue, wallet, isSignedIn, onClose, t])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        View Value: {keyName} (Player: {address})
-      </DialogTitle>
+      <DialogTitle>{t('player_page.edit_dialog.title', { key: keyName })}</DialogTitle>
       <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {t('player_page.edit_dialog.subtitle', { address })}
+        </Typography>
         {isLoading ? (
           <Box display="flex" justifyContent="center" p={3}>
             <CircularProgress />
           </Box>
         ) : (
-          <Paper sx={{ p: 2, bgcolor: 'grey.900', overflow: 'auto', maxHeight: '400px' }}>
-            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(data?.value, null, 2)}</pre>
-          </Paper>
+          <>
+            <TextField
+              autoFocus
+              margin="dense"
+              label={t('player_page.edit_dialog.value_label')}
+              fullWidth
+              variant="outlined"
+              multiline
+              rows={12}
+              value={editValue}
+              onChange={e => handleValueChange(e.target.value)}
+              error={!!jsonError}
+              sx={{ fontFamily: 'monospace' }}
+              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+            />
+            {jsonError && (
+              <Alert severity="error" sx={{ mt: 1 }}>
+                {jsonError}
+              </Alert>
+            )}
+          </>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button onClick={handleSave} variant="contained" disabled={isLoading || !!jsonError || !editValue.trim()}>
+          {t('common.save')}
+        </Button>
       </DialogActions>
     </Dialog>
   )
 }
 
 const PlayerPage = () => {
-  const { data: players, isLoading, refetch: refetchPlayers } = useListPlayersQuery()
+  const { wallet, isSignedIn } = useAuth()
+  const { t } = useTranslation()
   const [setPlayerValue] = useSetPlayerValueMutation()
   const [deletePlayerValue] = useDeletePlayerValueMutation()
   const [clearPlayer] = useClearPlayerMutation()
   const [clearAllPlayers] = useClearAllPlayersMutation()
 
-  // Selected player for viewing keys
+  // Player address entered by user (OpenAPI has no GET /players; user enters address to load keys)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
+  const [addressInput, setAddressInput] = useState('')
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isClearPlayerDialogOpen, setIsClearPlayerDialogOpen] = useState(false)
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedAddress, setSelectedAddress] = useState<string>('')
   const [selectedKey, setSelectedKey] = useState<string>('')
 
@@ -93,10 +153,6 @@ const PlayerPage = () => {
   const [newAddress, setNewAddress] = useState('')
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
-
-  const handleSelectPlayer = useCallback((address: string) => {
-    setSelectedPlayer(prev => (prev === address ? null : address))
-  }, [])
 
   const handleOpenAddDialog = useCallback(() => {
     setNewAddress('')
@@ -113,23 +169,28 @@ const PlayerPage = () => {
     if (newAddress.trim() && newKey.trim() && newValue.trim()) {
       try {
         const parsedValue = JSON.parse(newValue.trim())
-        await setPlayerValue({ address: newAddress.trim(), key: newKey.trim(), value: parsedValue })
+        await setPlayerValue({
+          wallet,
+          isSignedIn,
+          address: newAddress.trim(),
+          key: newKey.trim(),
+          value: parsedValue
+        })
         setIsAddDialogOpen(false)
-        refetchPlayers()
       } catch {
         // Invalid JSON - could show error to user
       }
     }
-  }, [newAddress, newKey, newValue, setPlayerValue, refetchPlayers])
+  }, [newAddress, newKey, newValue, setPlayerValue, wallet, isSignedIn])
 
-  const handleOpenViewDialog = useCallback((address: string, key: string) => {
+  const handleOpenEditDialog = useCallback((address: string, key: string) => {
     setSelectedAddress(address)
     setSelectedKey(key)
-    setIsViewDialogOpen(true)
+    setIsEditDialogOpen(true)
   }, [])
 
-  const handleCloseViewDialog = useCallback(() => {
-    setIsViewDialogOpen(false)
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false)
     setSelectedAddress('')
     setSelectedKey('')
   }, [])
@@ -148,13 +209,12 @@ const PlayerPage = () => {
 
   const handleConfirmDelete = useCallback(async () => {
     if (selectedAddress && selectedKey) {
-      await deletePlayerValue({ address: selectedAddress, key: selectedKey })
+      await deletePlayerValue({ wallet, isSignedIn, address: selectedAddress, key: selectedKey })
       setIsDeleteDialogOpen(false)
       setSelectedAddress('')
       setSelectedKey('')
-      refetchPlayers()
     }
-  }, [selectedAddress, selectedKey, deletePlayerValue, refetchPlayers])
+  }, [selectedAddress, selectedKey, deletePlayerValue, wallet, isSignedIn])
 
   const handleOpenClearPlayerDialog = useCallback((address: string) => {
     setSelectedAddress(address)
@@ -168,13 +228,12 @@ const PlayerPage = () => {
 
   const handleConfirmClearPlayer = useCallback(async () => {
     if (selectedAddress) {
-      await clearPlayer({ address: selectedAddress })
+      await clearPlayer({ wallet, isSignedIn, address: selectedAddress })
       setIsClearPlayerDialogOpen(false)
       setSelectedAddress('')
       setSelectedPlayer(null)
-      refetchPlayers()
     }
-  }, [selectedAddress, clearPlayer, refetchPlayers])
+  }, [selectedAddress, clearPlayer, wallet, isSignedIn])
 
   const handleOpenClearAllDialog = useCallback(() => {
     setIsClearAllDialogOpen(true)
@@ -185,108 +244,97 @@ const PlayerPage = () => {
   }, [])
 
   const handleConfirmClearAll = useCallback(async () => {
-    await clearAllPlayers()
+    await clearAllPlayers({ wallet, isSignedIn })
     setIsClearAllDialogOpen(false)
     setSelectedPlayer(null)
-    refetchPlayers()
-  }, [clearAllPlayers, refetchPlayers])
+  }, [clearAllPlayers, wallet, isSignedIn])
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  const hasPlayers = players && players.length > 0
+  const handleLoadAddress = useCallback(() => {
+    const address = addressInput.trim()
+    if (address) {
+      setSelectedPlayer(address)
+    }
+  }, [addressInput])
 
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Player Storage</Typography>
+        <Typography variant="h4">{t('player_page.title')}</Typography>
         <Box>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog} sx={{ mr: 1 }}>
-            Add
+            {t('player_page.add')}
           </Button>
-          {hasPlayers && (
-            <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearAllDialog}>
-              Clear All Players
-            </Button>
-          )}
+          <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearAllDialog}>
+            {t('player_page.clear_all_players')}
+          </Button>
         </Box>
       </Box>
 
-      {hasPlayers ? (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Player Address</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {players.map(player => (
-                <TableRow key={player.address} hover sx={{ cursor: 'pointer' }}>
-                  <TableCell>
-                    <Button
-                      variant="text"
-                      onClick={() => handleSelectPlayer(player.address)}
-                      sx={{ fontFamily: 'monospace', textTransform: 'none' }}
-                      aria-label={`select ${player.address}`}
-                    >
-                      {player.address}
-                    </Button>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleOpenClearPlayerDialog(player.address)}
-                      aria-label={`clear ${player.address}`}
-                    >
-                      Clear
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary">No players found</Typography>
-        </Paper>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        {t('player_page.description')}
+      </Typography>
+
+      <Box display="flex" gap={2} alignItems="center" sx={{ mb: 3 }}>
+        <TextField
+          label={t('player_page.address_label')}
+          placeholder={t('player_page.address_placeholder')}
+          value={addressInput}
+          onChange={e => setAddressInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLoadAddress()}
+          variant="outlined"
+          size="small"
+          sx={{ minWidth: 400 }}
+          inputProps={{ 'aria-label': t('player_page.address_label') }}
+        />
+        <Button variant="contained" onClick={handleLoadAddress} disabled={!addressInput.trim()}>
+          {t('player_page.load_keys')}
+        </Button>
+      </Box>
+
+      {selectedPlayer && wallet && (
+        <PlayerKeysSection
+          address={selectedPlayer}
+          wallet={wallet}
+          isSignedIn={isSignedIn}
+          onEdit={handleOpenEditDialog}
+          onDelete={handleOpenDeleteDialog}
+          onClearPlayer={handleOpenClearPlayerDialog}
+        />
       )}
 
-      {/* Player Keys Section */}
-      {selectedPlayer && <PlayerKeysSection address={selectedPlayer} onView={handleOpenViewDialog} onDelete={handleOpenDeleteDialog} />}
-
-      {/* View Dialog */}
-      <ViewDialog address={selectedAddress} keyName={selectedKey} open={isViewDialogOpen} onClose={handleCloseViewDialog} />
+      {/* Edit Dialog */}
+      {selectedAddress && selectedKey && (
+        <EditDialog
+          address={selectedAddress}
+          keyName={selectedKey}
+          open={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          wallet={wallet}
+          isSignedIn={isSignedIn}
+        />
+      )}
 
       {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Player Value</DialogTitle>
+        <DialogTitle>{t('player_page.add_dialog.title')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             id="player-address"
-            label="Player Address"
+            label={t('player_page.add_dialog.address_label')}
             type="text"
             fullWidth
             variant="outlined"
             value={newAddress}
             onChange={e => setNewAddress(e.target.value)}
-            placeholder="0x..."
+            placeholder={t('player_page.address_placeholder')}
             sx={{ mb: 2 }}
           />
           <TextField
             margin="dense"
             id="player-key"
-            label="Key"
+            label={t('player_page.add_dialog.key_label')}
             type="text"
             fullWidth
             variant="outlined"
@@ -297,7 +345,7 @@ const PlayerPage = () => {
           <TextField
             margin="dense"
             id="player-value"
-            label="Value (JSON)"
+            label={t('player_page.add_dialog.value_label')}
             type="text"
             fullWidth
             variant="outlined"
@@ -305,60 +353,55 @@ const PlayerPage = () => {
             rows={4}
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
-            placeholder='{"key": "value"}'
+            placeholder={t('player_page.add_dialog.value_placeholder')}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>Cancel</Button>
+          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleSaveValue} variant="contained" disabled={!newAddress.trim() || !newKey.trim() || !newValue.trim()}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Delete Player Value</DialogTitle>
+        <DialogTitle>{t('player_page.delete_dialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the value &quot;{selectedKey}&quot; for player &quot;{selectedAddress}&quot;? This action cannot
-            be undone.
-          </DialogContentText>
+          <DialogContentText>{t('player_page.delete_dialog.message', { key: selectedKey, address: selectedAddress })}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+          <Button onClick={handleCloseDeleteDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            Confirm
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Clear Player Confirmation Dialog */}
       <Dialog open={isClearPlayerDialogOpen} onClose={handleCloseClearPlayerDialog}>
-        <DialogTitle>Clear Player Storage</DialogTitle>
+        <DialogTitle>{t('player_page.clear_player_dialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete ALL values for player &quot;{selectedAddress}&quot;? This action cannot be undone.
-          </DialogContentText>
+          <DialogContentText>{t('player_page.clear_player_dialog.message', { address: selectedAddress })}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseClearPlayerDialog}>Cancel</Button>
+          <Button onClick={handleCloseClearPlayerDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleConfirmClearPlayer} color="error" variant="contained">
-            Confirm
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Clear All Players Confirmation Dialog */}
       <Dialog open={isClearAllDialogOpen} onClose={handleCloseClearAllDialog}>
-        <DialogTitle>Clear All Player Storage</DialogTitle>
+        <DialogTitle>{t('player_page.clear_all_dialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete ALL player storage data? This action cannot be undone.</DialogContentText>
+          <DialogContentText>{t('player_page.clear_all_dialog.message')}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseClearAllDialog}>Cancel</Button>
+          <Button onClick={handleCloseClearAllDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleConfirmClearAll} color="error" variant="contained">
-            Confirm
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -368,17 +411,21 @@ const PlayerPage = () => {
 
 interface PlayerKeysSectionProps {
   address: string
-  onView: (address: string, key: string) => void
+  wallet?: string
+  isSignedIn?: boolean
+  onEdit: (address: string, key: string) => void
   onDelete: (address: string, key: string) => void
+  onClearPlayer: (address: string) => void
 }
 
-const PlayerKeysSection = ({ address, onView, onDelete }: PlayerKeysSectionProps) => {
-  const { data: playerKeys, isLoading } = useListPlayerKeysQuery({ address })
+const PlayerKeysSection = ({ address, wallet, isSignedIn, onEdit, onDelete, onClearPlayer }: PlayerKeysSectionProps) => {
+  const { t } = useTranslation()
+  const { data: playerKeys, isLoading } = useListPlayerKeysQuery({ wallet, isSignedIn, address })
 
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
-        <CircularProgress aria-label="Loading player keys" />
+        <CircularProgress aria-label={t('player_page.loading_keys')} />
       </Box>
     )
   }
@@ -386,22 +433,31 @@ const PlayerKeysSection = ({ address, onView, onDelete }: PlayerKeysSectionProps
   if (!playerKeys || playerKeys.length === 0) {
     return (
       <Paper sx={{ p: 3, mt: 2, textAlign: 'center' }}>
-        <Typography color="text.secondary">No keys found for this player</Typography>
+        <Typography color="text.secondary">{t('player_page.no_keys')}</Typography>
       </Paper>
     )
   }
 
   return (
     <Box mt={2}>
-      <Typography variant="h6" gutterBottom>
-        Keys for {address}
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">{t('player_page.keys_for', { address })}</Typography>
+        <Button
+          size="small"
+          color="error"
+          variant="outlined"
+          onClick={() => onClearPlayer(address)}
+          aria-label={`clear storage for ${address}`}
+        >
+          {t('player_page.clear_this_player')}
+        </Button>
+      </Box>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Key</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t('common.key')}</TableCell>
+              <TableCell align="right">{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -409,8 +465,8 @@ const PlayerKeysSection = ({ address, onView, onDelete }: PlayerKeysSectionProps
               <TableRow key={item.key}>
                 <TableCell>{item.key}</TableCell>
                 <TableCell align="right">
-                  <IconButton aria-label={`view ${item.key}`} color="primary" onClick={() => onView(address, item.key)}>
-                    <VisibilityIcon />
+                  <IconButton aria-label={`edit ${item.key}`} color="primary" onClick={() => onEdit(address, item.key)}>
+                    <EditIcon />
                   </IconButton>
                   <IconButton aria-label={`delete ${item.key}`} color="error" onClick={() => onDelete(address, item.key)}>
                     <DeleteIcon />

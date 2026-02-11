@@ -1,6 +1,9 @@
+import { useTranslation } from '@dcl/hooks'
 import { Box, Typography } from 'decentraland-ui2'
 
 const MissingParamsPage = () => {
+  const { t } = useTranslation()
+
   return (
     <Box
       sx={{
@@ -12,10 +15,9 @@ const MissingParamsPage = () => {
         gap: 1
       }}
     >
-      <Typography variant="h5">Missing parameters</Typography>
+      <Typography variant="h5">{t('missing_params_page.title')}</Typography>
       <Typography variant="body1" color="text.secondary">
-        Provide at least one URL parameter: <code>realm</code> (world name) or <code>position</code> (parcel coordinates, e.g.{' '}
-        <code>10,20</code>).
+        {t('missing_params_page.subtitle', { realm: 'realm', position: 'position', example: '10,20' })}
       </Typography>
     </Box>
   )

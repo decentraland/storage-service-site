@@ -1,8 +1,11 @@
+import { fromUnixTime } from 'date-fns/fromUnixTime'
+import { config } from '@/config'
 import { LandType, RoleType } from './assets.types'
-import type { Land, LandQueryResult, SubgraphEstate, SubgraphParcel } from './assets.types'
+import type { Land, LandQueryResult, Rental, RentalFields, RentalsQueryResult, SubgraphEstate, SubgraphParcel } from './assets.types'
 
-const LAND_CONTRACT_ADDRESS = '0xf87e31492faf9a91b02ee0deaad50d51d56d5d4d'
-const ESTATE_CONTRACT_ADDRESS = '0x959e104e1a4db6317fa58f8295f586e1a978c297'
+const LAND_REGISTRY_ADDRESS = config.get('LAND_REGISTRY_ADDRESS')
+const ESTATE_REGISTRY_ADDRESS = config.get('ESTATE_REGISTRY_ADDRESS')
+const MAX_RESULTS = 1000
 
 const parcelToLand = (parcel: SubgraphParcel, role: RoleType): Land => ({
   id: `parcel-${parcel.x}-${parcel.y}`,
@@ -34,6 +37,21 @@ const estateToLand = (estate: SubgraphEstate, role: RoleType): Land => ({
   operators: estate.updateOperator ? [estate.updateOperator] : []
 })
 
+const mergeLandsIntoMap = (landsMap: Map<string, Land>, parcels: SubgraphParcel[], estates: SubgraphEstate[], role: RoleType): void => {
+  for (const parcel of parcels) {
+    const land = parcelToLand(parcel, role)
+    if (!landsMap.has(land.id)) {
+      landsMap.set(land.id, land)
+    }
+  }
+  for (const estate of estates) {
+    const land = estateToLand(estate, role)
+    if (!landsMap.has(land.id)) {
+      landsMap.set(land.id, land)
+    }
+  }
+}
+
 /**
  * Transform land subgraph query result into a flat array of Land objects.
  * Deduplicates by land id.
@@ -41,65 +59,21 @@ const estateToLand = (estate: SubgraphEstate, role: RoleType): Land => ({
 const transformLandQueryResult = (data: LandQueryResult): Land[] => {
   const landsMap = new Map<string, Land>()
 
-  // Owner parcels
+  // Owner parcels (take precedence)
   for (const parcel of data.ownerParcels) {
     const land = parcelToLand(parcel, RoleType.OWNER)
     landsMap.set(land.id, land)
   }
 
-  // Owner estates
+  // Owner estates (take precedence)
   for (const estate of data.ownerEstates) {
     const land = estateToLand(estate, RoleType.OWNER)
     landsMap.set(land.id, land)
   }
 
-  // Operator parcels
-  for (const parcel of data.updateOperatorParcels) {
-    const land = parcelToLand(parcel, RoleType.OPERATOR)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
-
-  // Operator estates
-  for (const estate of data.updateOperatorEstates) {
-    const land = estateToLand(estate, RoleType.OPERATOR)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
-
-  // Tenant parcels
-  for (const parcel of data.tenantParcels) {
-    const land = parcelToLand(parcel, RoleType.TENANT)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
-
-  // Tenant estates
-  for (const estate of data.tenantEstates) {
-    const land = estateToLand(estate, RoleType.TENANT)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
-
-  // Lessor parcels
-  for (const parcel of data.lessorParcels) {
-    const land = parcelToLand(parcel, RoleType.LESSOR)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
-
-  // Lessor estates
-  for (const estate of data.lessorEstates) {
-    const land = estateToLand(estate, RoleType.LESSOR)
-    if (!landsMap.has(land.id)) {
-      landsMap.set(land.id, land)
-    }
-  }
+  mergeLandsIntoMap(landsMap, data.updateOperatorParcels, data.updateOperatorEstates, RoleType.OPERATOR)
+  mergeLandsIntoMap(landsMap, data.tenantParcels, data.tenantEstates, RoleType.TENANT)
+  mergeLandsIntoMap(landsMap, data.lessorParcels, data.lessorEstates, RoleType.LESSOR)
 
   return Array.from(landsMap.values())
 }
@@ -107,84 +81,48 @@ const transformLandQueryResult = (data: LandQueryResult): Land[] => {
 /**
  * Build GraphQL query for the Land Manager subgraph
  */
-const getLandQuery = (): string => {
+const getLandQuery = (skip = 0): string => {
   return `
-    query GetLands(
-      $address: String!,
-      $tenantTokenIds: [String!],
-      $lessorTokenIds: [String!]
-    ) {
-      ownerParcels: parcels(
-        first: 1000,
-        where: { owner: $address }
-      ) {
+    query GetLands($address: Bytes, $tenantTokenIds: [String!], $lessorTokenIds: [String!]) {
+      tenantParcels: parcels(first: ${MAX_RESULTS}, skip: ${skip}, where: { tokenId_in: $tenantTokenIds }) {
         ...parcelFields
       }
-      ownerEstates: estates(
-        first: 1000,
-        where: { owner: $address }
-      ) {
+      tenantEstates: estates(first: ${MAX_RESULTS}, skip: ${skip}, where: { id_in: $tenantTokenIds }) {
         ...estateFields
       }
-      updateOperatorParcels: parcels(
-        first: 1000,
-        where: { updateOperator: $address }
-      ) {
+      lessorParcels: parcels(first: ${MAX_RESULTS}, skip: ${skip}, where: { tokenId_in: $lessorTokenIds }) {
         ...parcelFields
       }
-      updateOperatorEstates: estates(
-        first: 1000,
-        where: { updateOperator: $address }
-      ) {
+      lessorEstates: estates(first: ${MAX_RESULTS}, skip: ${skip}, where: { id_in: $lessorTokenIds }) {
         ...estateFields
       }
-      tenantParcels: parcels(
-        first: 1000,
-        where: { tokenId_in: $tenantTokenIds }
-      ) {
+      ownerParcels: parcels(first: ${MAX_RESULTS}, skip: ${skip}, where: { estate: null, owner: $address }) {
         ...parcelFields
       }
-      tenantEstates: estates(
-        first: 1000,
-        where: { tokenId_in: $tenantTokenIds }
-      ) {
+      ownerEstates: estates(first: ${MAX_RESULTS}, skip: ${skip}, where: { owner: $address }) {
         ...estateFields
       }
-      lessorParcels: parcels(
-        first: 1000,
-        where: { tokenId_in: $lessorTokenIds }
-      ) {
+      updateOperatorParcels: parcels(first: ${MAX_RESULTS}, skip: ${skip}, where: { updateOperator: $address }) {
         ...parcelFields
       }
-      lessorEstates: estates(
-        first: 1000,
-        where: { tokenId_in: $lessorTokenIds }
-      ) {
+      updateOperatorEstates: estates(first: ${MAX_RESULTS}, skip: ${skip}, where: { updateOperator: $address }) {
         ...estateFields
       }
-      ownerAuthorizations: authorizations(
-        first: 1000,
-        where: {
-          owner: $address,
-          type: "UpdateManager",
-          isApproved: true,
-          tokenAddress_in: ["${LAND_CONTRACT_ADDRESS}", "${ESTATE_CONTRACT_ADDRESS}"]
-        }
-      ) {
+      ownerAuthorizations: authorizations(first: ${MAX_RESULTS}, skip: ${skip}, where: { owner: $address, type: "UpdateManager" }) {
         operator
         isApproved
         tokenAddress
       }
-      operatorAuthorizations: authorizations(
-        first: 1000,
-        where: {
-          operator: $address,
-          type: "UpdateManager",
-          isApproved: true,
-          tokenAddress_in: ["${LAND_CONTRACT_ADDRESS}", "${ESTATE_CONTRACT_ADDRESS}"]
+      operatorAuthorizations: authorizations(first: ${MAX_RESULTS}, skip: ${skip}, where: { operator: $address, type: "UpdateManager" }) {
+        owner {
+          address
+          parcels(first: ${MAX_RESULTS}, skip: ${skip}, where: { estate: null }) {
+            ...parcelFields
+          }
+          estates(first: ${MAX_RESULTS}) {
+            ...estateFields
+          }
         }
-      ) {
-        operator
         isApproved
         tokenAddress
       }
@@ -194,19 +132,32 @@ const getLandQuery = (): string => {
       x
       y
       tokenId
-      owner { address }
+      owner {
+        address
+      }
       updateOperator
-      data { name description }
+      data {
+        name
+        description
+      }
     }
 
     fragment estateFields on Estate {
       id
-      tokenId
-      owner { address }
+      owner {
+        address
+      }
       updateOperator
       size
-      parcels { x y id }
-      data { name description }
+      parcels(first: 1000) {
+        x
+        y
+        tokenId
+      }
+      data {
+        name
+        description
+      }
     }
   `
 }
@@ -242,4 +193,57 @@ const getRoleLabel = (role: RoleType): string => {
   }
 }
 
-export { getLandPosition, getLandQuery, getRoleLabel, transformLandQueryResult }
+const getRentalsQuery = () => `
+  query Rentals($address: Bytes) {
+    tenantRentals: rentals(where: { tenant: $address, isActive: true }) {
+      ...rentalFields
+    }
+    lessorRentals: rentals(where: { lessor: $address, isActive: true }) {
+      ...rentalFields
+    }
+  }
+  
+  fragment rentalFields on Rental {
+    id
+    contractAddress
+    tokenId
+    lessor
+    tenant
+    operator
+    startedAt
+    endsAt
+  }
+`
+
+const getLandType = (contractAddress: string): LandType => {
+  switch (contractAddress.toLowerCase()) {
+    case LAND_REGISTRY_ADDRESS:
+      return LandType.PARCEL
+    case ESTATE_REGISTRY_ADDRESS:
+      return LandType.ESTATE
+    default:
+      throw new Error(`Could not derive land type from contract address "${contractAddress}"`)
+  }
+}
+
+const fromRentalFields = (fields: RentalFields): Rental => {
+  return {
+    id: fields.id,
+    type: getLandType(fields.contractAddress),
+    tokenId: fields.tokenId,
+    lessor: fields.lessor,
+    tenant: fields.tenant,
+    operator: fields.operator,
+    startedAt: fromUnixTime(+fields.startedAt),
+    endsAt: fromUnixTime(+fields.endsAt)
+  }
+}
+
+const transformRentalsQueryResult = (data: RentalsQueryResult): { lessorRentals: Rental[]; tenantRentals: Rental[] } => {
+  return {
+    lessorRentals: data.lessorRentals.map(fromRentalFields),
+    tenantRentals: data.tenantRentals.map(fromRentalFields)
+  }
+}
+
+export { getLandPosition, getLandQuery, getLandType, getRentalsQuery, getRoleLabel, transformLandQueryResult, transformRentalsQueryResult }

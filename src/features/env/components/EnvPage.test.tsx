@@ -1,9 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { EnvPage } from './EnvPage'
+
+vi.mock('@/features/auth', () => ({
+  useAuth: () => ({ wallet: '0xtest', isSignedIn: true })
+}))
 
 describe('EnvPage', () => {
   beforeEach(() => {
@@ -25,6 +29,39 @@ describe('EnvPage', () => {
       })
 
       expect(screen.getByText('DATABASE_URL')).toBeInTheDocument()
+    })
+  })
+
+  describe('when editing an env value', () => {
+    it('should show edit button for each row', async () => {
+      renderWithProviders(<EnvPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('API_KEY')).toBeInTheDocument()
+      })
+
+      const editButtons = screen.getAllByRole('button', { name: /edit/i })
+      expect(editButtons.length).toBeGreaterThan(0)
+    })
+
+    it('should show editable value in a dialog when clicking edit', async () => {
+      const user = userEvent.setup()
+      renderWithProviders(<EnvPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('API_KEY')).toBeInTheDocument()
+      })
+
+      const editButton = screen.getByRole('button', { name: /edit API_KEY/i })
+      await user.click(editButton)
+
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toBeInTheDocument()
+
+      // Should show the key as read-only and value as editable
+      await waitFor(() => {
+        expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
+      })
     })
   })
 

@@ -1,13 +1,23 @@
 import { useCallback, useMemo } from 'react'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, useLocation } from 'react-router-dom'
+import { TranslationProvider } from '@dcl/hooks'
 import { ChainId } from '@dcl/schemas'
 import { Layout } from '@/components/Layout'
+import { Sidebar } from '@/components/Sidebar'
 import { config } from '@/config'
 import { type AuthConfig, AuthProvider, useAuth } from '@/features/auth'
+import en from '@/intl/en.json'
 import { AppRoutes } from '@/routes'
+
+const translations = { en }
+
+const STORAGE_ROUTES = ['/env', '/scene', '/players']
 
 const AppContent = () => {
   const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
+  const location = useLocation()
+
+  const isStorageRoute = STORAGE_ROUTES.includes(location.pathname)
 
   const handleClickSignIn = useCallback(() => {
     signIn()
@@ -36,6 +46,7 @@ const AppContent = () => {
       isSigningIn={isConnecting}
       address={wallet}
       avatar={avatar}
+      sidebar={isStorageRoute ? <Sidebar /> : undefined}
       onClickSignIn={handleClickSignIn}
       onClickSignOut={handleClickSignOut}
       onClickNavbarItem={handleClickNavbarItem}
@@ -57,9 +68,11 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <AuthProvider config={authConfig}>
-        <AppContent />
-      </AuthProvider>
+      <TranslationProvider locale="en" translations={translations}>
+        <AuthProvider config={authConfig}>
+          <AppContent />
+        </AuthProvider>
+      </TranslationProvider>
     </BrowserRouter>
   )
 }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The scene feature manages **JSON key-value storage** for a world or parcel (scene storage). It exposes RTK Query endpoints for listing keys, getting a value by key, setting a value, deleting by key, and clearing all. Values are arbitrary JSON. The `ScenePage` component provides a table UI with view (JSON preview), add, delete, and clear-all dialogs.
+The scene feature manages **JSON key-value storage** for a world or parcel (scene storage). It exposes RTK Query endpoints for listing keys, getting a value by key, setting a value, deleting by key, and clearing all. Values are arbitrary JSON. The `ScenePage` component provides a table UI with edit (fetches value into an editable TextField), add, delete, and clear-all dialogs.
 
 ## Dependencies
 
@@ -75,16 +75,17 @@ All mutations invalidate the `Scene` tag; `getSceneValue` uses tag `{ type: 'Sce
 ## ScenePage Component
 
 - **Loading**: Shows a centered `CircularProgress` while keys are loading.
-- **Table**: Renders key and actions (View, Delete) per row.
-- **View**: Opens a dialog that fetches the value with `useGetSceneValueQuery` and displays it as formatted JSON.
-- **Add**: Button opens a dialog with Key and Value (JSON) text fields; Save parses JSON and calls `setSceneValue`, then refetches. Invalid JSON is caught (no user-facing error in current implementation).
+- **Table**: Renders key with Edit and Delete actions per row.
+- **Edit**: Per-row edit icon opens a dialog that fetches the value with `useGetSceneValueQuery` and displays it in an editable TextField; Save parses JSON and calls `setSceneValue`, then refetches. Invalid JSON shows a validation error.
+- **Add**: Button opens a dialog with Key and Value (JSON) text fields; Save parses JSON and calls `setSceneValue`, then refetches. Invalid JSON shows a validation error.
 - **Delete**: Per-row delete icon opens a confirmation dialog; Confirm calls `deleteSceneValue` and refetches.
 - **Clear All**: Button (only when there are keys) opens a confirmation dialog; Confirm calls `clearScene` and refetches.
 - **Empty state**: When there are no keys, shows "No scene values found".
+- **i18n**: All user-facing strings use `useTranslation()` from `@dcl/hooks`.
 
 ## JSON Parsing / Validation
 
-When adding a value, the form expects valid JSON in the Value field. `handleSaveValue` uses `JSON.parse(newValue.trim())`. If parsing throws, the mutation is not called; consider adding user-visible error feedback for invalid JSON.
+When adding or editing a value, the form expects valid JSON in the Value field. `handleSaveValue` uses `JSON.parse(newValue.trim())`. If parsing throws, a validation error is shown in the dialog and the mutation is not called.
 
 ## Usage
 

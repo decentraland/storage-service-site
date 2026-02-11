@@ -1,8 +1,15 @@
-// Client hooks
-export { envClient, useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from './env.client'
+// Client hooks and types
+export {
+  envClient,
+  useClearEnvMutation,
+  useDeleteEnvMutation,
+  useGetEnvValueQuery,
+  useListEnvKeysQuery,
+  useSetEnvMutation
+} from './env.client'
 
 // Components
 export { EnvPage } from './components'
 
 // Types
-export type { DeleteEnvParams, EnvKey, SetEnvParams } from './env.types'
+export type { DeleteEnvParams, EnvKey, EnvValue, GetEnvValueParams, SetEnvParams } from './env.types'

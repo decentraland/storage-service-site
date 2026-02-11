@@ -1,9 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { ScenePage } from './ScenePage'
+
+vi.mock('@/features/auth', () => ({
+  useAuth: () => ({ wallet: '0xtest', isSignedIn: true })
+}))
 
 describe('ScenePage', () => {
   beforeEach(() => {
@@ -28,19 +32,19 @@ describe('ScenePage', () => {
     })
   })
 
-  describe('when viewing a value', () => {
-    it('should show view button for each row', async () => {
+  describe('when editing a value', () => {
+    it('should show edit button for each row', async () => {
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
         expect(screen.getByText('leaderboard')).toBeInTheDocument()
       })
 
-      const viewButtons = screen.getAllByRole('button', { name: /view/i })
-      expect(viewButtons.length).toBeGreaterThan(0)
+      const editButtons = screen.getAllByRole('button', { name: /edit/i })
+      expect(editButtons.length).toBeGreaterThan(0)
     })
 
-    it('should show value in a dialog when clicking view', async () => {
+    it('should show editable value in a dialog when clicking edit', async () => {
       const user = userEvent.setup()
       renderWithProviders(<ScenePage />)
 
@@ -48,14 +52,17 @@ describe('ScenePage', () => {
         expect(screen.getByText('leaderboard')).toBeInTheDocument()
       })
 
-      // Click view button for leaderboard
-      const viewButton = screen.getByRole('button', { name: /view leaderboard/i })
-      await user.click(viewButton)
+      // Click edit button for leaderboard
+      const editButton = screen.getByRole('button', { name: /edit leaderboard/i })
+      await user.click(editButton)
 
-      // Should show dialog with JSON value
+      // Should show dialog with editable JSON value
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
-      expect(within(dialog).getByText(/scores/i)).toBeInTheDocument()
+
+      await waitFor(() => {
+        expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
+      })
     })
   })
 

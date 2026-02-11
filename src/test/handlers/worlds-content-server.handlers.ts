@@ -40,7 +40,6 @@ const worldsContentServerHandlers = [
       domains: [
         {
           name: 'shared-world.dcl.eth',
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           user_permissions: ['deployment'],
           size: '100MB',
           owner: '0xowner'

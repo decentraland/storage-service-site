@@ -48,7 +48,6 @@ const StorageForm: FC<StorageFormProps> = ({
         fullWidth
         size="small"
         disabled={disabled}
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         inputProps={{ 'aria-label': keyLabel }}
       />
       <TextField
@@ -61,7 +60,6 @@ const StorageForm: FC<StorageFormProps> = ({
         minRows={2}
         size="small"
         disabled={disabled}
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         inputProps={{ 'aria-label': valueLabel }}
       />
       <Button type="submit" variant="contained" disabled={disabled || !key.trim() || !value.trim()} aria-label={submitLabel}>

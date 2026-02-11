@@ -62,6 +62,11 @@ connection.tryPreviousConnection()
                 fetchAvatar(wallet)
 ```
 
+**Re-check and recovery**
+
+- Auth state is re-checked when the tab becomes visible (`visibilitychange`) or the window gains focus, so connection changes (e.g. user connected in another tab, or WalletConnect session restored) are picked up without reloading.
+- When connection is unavailable on this origin (e.g. user signed in via redirect to another origin such as `decentraland.org/auth`), signed-in state can still be restored from the **last known wallet** and a valid identity in localStorage. The last wallet is persisted when the user has a valid session and is cleared on sign out.
+
 ### 2. Sign In
 
 ```
@@ -96,6 +101,9 @@ connection.disconnect()
     │
     ▼
 localStorageClearIdentity(wallet)
+    │
+    ▼
+Clear last-wallet from localStorage
     │
     ▼
 Clear state (wallet, avatar, isSignedIn)
