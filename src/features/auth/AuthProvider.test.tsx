@@ -26,7 +26,6 @@ vi.mock('@dcl/single-sign-on-client', () => ({
 }))
 
 const VALID_IDENTITY = { expiration: new Date(Date.now() + 86400000).toISOString() }
-const LAST_WALLET_KEY = 'dcl-storage-ui-last-wallet'
 
 const TestConsumer = () => {
   const { wallet, isSignedIn, isConnecting, signIn, signOut } = useAuth()
@@ -97,24 +96,17 @@ describe('AuthProvider', () => {
   describe('when tryPreviousConnection throws', () => {
     beforeEach(() => {
       mockTryPreviousConnection.mockRejectedValue(new Error('Could not find a valid provider'))
-      window.localStorage.setItem(LAST_WALLET_KEY, '0xrecovered')
-      mockGetIdentity.mockImplementation((address: string) => {
-        if (address === '0xrecovered') return VALID_IDENTITY
-        return null
-      })
     })
 
-    it('should recover wallet and isSignedIn from last wallet and valid identity', async () => {
+    it('should show not signed in', async () => {
       renderWithAuth()
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('isConnecting').textContent).toBe('false')
-          expect(screen.getByTestId('wallet').textContent).toBe('0xrecovered')
-          expect(screen.getByTestId('isSignedIn').textContent).toBe('true')
-        },
-        { timeout: 3000 }
-      )
+      await waitFor(() => {
+        expect(screen.getByTestId('isConnecting').textContent).toBe('false')
+      })
+
+      expect(screen.getByTestId('wallet').textContent).toBe('none')
+      expect(screen.getByTestId('isSignedIn').textContent).toBe('false')
     })
   })
 
@@ -125,51 +117,17 @@ describe('AuthProvider', () => {
         chainId: ChainId.ETHEREUM_MAINNET,
         provider: null
       })
-      window.localStorage.setItem(LAST_WALLET_KEY, '0xlast')
-      mockGetIdentity.mockImplementation((address: string) => {
-        if (address === '0xlast') return VALID_IDENTITY
-        return null
-      })
     })
 
-    it('should recover wallet and isSignedIn from last wallet and valid identity', async () => {
-      renderWithAuth()
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('isConnecting').textContent).toBe('false')
-          expect(screen.getByTestId('wallet').textContent).toBe('0xlast')
-          expect(screen.getByTestId('isSignedIn').textContent).toBe('true')
-        },
-        { timeout: 3000 }
-      )
-    })
-  })
-
-  describe('when the tab becomes visible', () => {
-    it('should call tryPreviousConnection again', async () => {
-      mockTryPreviousConnection.mockResolvedValue({
-        account: null,
-        chainId: ChainId.ETHEREUM_MAINNET,
-        provider: null
-      })
-      mockGetIdentity.mockReturnValue(null)
-
+    it('should show not signed in', async () => {
       renderWithAuth()
 
       await waitFor(() => {
         expect(screen.getByTestId('isConnecting').textContent).toBe('false')
       })
 
-      expect(mockTryPreviousConnection).toHaveBeenCalled()
-
-      mockTryPreviousConnection.mockClear()
-      document.dispatchEvent(new Event('visibilitychange'))
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-
-      await waitFor(() => {
-        expect(mockTryPreviousConnection).toHaveBeenCalled()
-      })
+      expect(screen.getByTestId('wallet').textContent).toBe('none')
+      expect(screen.getByTestId('isSignedIn').textContent).toBe('false')
     })
   })
 })

@@ -143,62 +143,14 @@ const isIdentityValid = (identity: { expiration?: Date | string } | null): boole
   return now.getTime() <= expiration.getTime()
 }
 
-const LAST_WALLET_STORAGE_KEY = 'dcl-storage-ui-last-wallet'
-
-/**
- * Storage key for last connected wallet (used for recovery when tryPreviousConnection fails)
- */
-const getLastWalletKey = (): string => LAST_WALLET_STORAGE_KEY
-
-/**
- * Get last connected wallet address from localStorage
- */
-const getLastWallet = (): string | null => {
-  try {
-    return typeof window !== 'undefined' ? window.localStorage.getItem(LAST_WALLET_STORAGE_KEY) : null
-  } catch {
-    return null
-  }
-}
-
-/**
- * Persist last connected wallet address (call when we have a valid session)
- */
-const setLastWallet = (address: string): void => {
-  try {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(LAST_WALLET_STORAGE_KEY, address)
-    }
-  } catch {
-    // ignore
-  }
-}
-
-/**
- * Clear last connected wallet from localStorage (call on sign out)
- */
-const clearLastWallet = (): void => {
-  try {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(LAST_WALLET_STORAGE_KEY)
-    }
-  } catch {
-    // ignore
-  }
-}
-
 export {
   buildRedirectUrl,
-  clearLastWallet,
   createAuthConfig,
   debugLog,
   defaultFetchAvatar,
   defaultShouldUseBasePath,
   getAddEthereumChainParameters,
   getChainName,
-  getLastWallet,
-  getLastWalletKey,
   getProviderChainId,
-  isIdentityValid,
-  setLastWallet
+  isIdentityValid
 }
