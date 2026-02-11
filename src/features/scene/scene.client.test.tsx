@@ -12,6 +12,8 @@ import {
 } from './scene.client'
 import type { SceneKey, SceneValue } from './scene.types'
 
+const authParams = { wallet: undefined, isSignedIn: false }
+
 const createWrapper = () => {
   const store = setupStore()
   const Wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>
@@ -28,7 +30,7 @@ describe('scene client', () => {
       it('should return list of keys', async () => {
         const wrapper = createWrapper()
 
-        const { result } = renderHook(() => useListSceneKeysQuery(), { wrapper })
+        const { result } = renderHook(() => useListSceneKeysQuery(authParams), { wrapper })
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -44,7 +46,7 @@ describe('scene client', () => {
       it('should return the value for the key', async () => {
         const wrapper = createWrapper()
 
-        const { result } = renderHook(() => useGetSceneValueQuery({ key: 'leaderboard' }), { wrapper })
+        const { result } = renderHook(() => useGetSceneValueQuery({ ...authParams, key: 'leaderboard' }), { wrapper })
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -58,7 +60,7 @@ describe('scene client', () => {
       it('should return error', async () => {
         const wrapper = createWrapper()
 
-        const { result } = renderHook(() => useGetSceneValueQuery({ key: 'nonexistent' }), { wrapper })
+        const { result } = renderHook(() => useGetSceneValueQuery({ ...authParams, key: 'nonexistent' }), { wrapper })
 
         await waitFor(() => expect(result.current.isError).toBe(true))
       })
@@ -73,7 +75,7 @@ describe('scene client', () => {
         const { result } = renderHook(() => useSetSceneValueMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ key: 'newKey', value: { data: 'test' } })
+          await result.current[0]({ ...authParams, key: 'newKey', value: { data: 'test' } })
         })
 
         await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
@@ -89,7 +91,7 @@ describe('scene client', () => {
         const { result } = renderHook(() => useDeleteSceneValueMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ key: 'leaderboard' })
+          await result.current[0]({ ...authParams, key: 'leaderboard' })
         })
 
         await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
@@ -105,7 +107,7 @@ describe('scene client', () => {
         const { result } = renderHook(() => useClearSceneMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]()
+          await result.current[0](authParams)
         })
 
         await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
