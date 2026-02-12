@@ -65,7 +65,7 @@ describe('EnvPage', () => {
     })
 
     it('should show editable value in a dialog when clicking edit', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<EnvPage />)
 
       await waitFor(
@@ -93,7 +93,7 @@ describe('EnvPage', () => {
 
   describe('when setting a new env value', () => {
     it('should show a form to add new env', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<EnvPage />)
 
       await waitFor(
@@ -116,7 +116,7 @@ describe('EnvPage', () => {
     }, 15000)
 
     it('should add a new env key after submitting the form', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<EnvPage />)
 
       await waitFor(
@@ -163,7 +163,7 @@ describe('EnvPage', () => {
     }, 15000)
 
     it('should remove the env key after confirming delete', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<EnvPage />)
 
       await waitFor(
@@ -206,7 +206,7 @@ describe('EnvPage', () => {
     }, 15000)
 
     it('should remove all env keys after confirming clear all', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<EnvPage />)
 
       await waitFor(

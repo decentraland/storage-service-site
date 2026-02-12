@@ -38,7 +38,7 @@ describe('PlayerPage', () => {
     })
 
     it('should display keys for address after loading', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
@@ -56,7 +56,7 @@ describe('PlayerPage', () => {
 
   describe('when keys are loaded for an address', () => {
     it('should show player keys', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
@@ -74,7 +74,7 @@ describe('PlayerPage', () => {
 
   describe('when editing a player value', () => {
     it('should show editable value in a dialog when clicking edit', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
@@ -101,7 +101,7 @@ describe('PlayerPage', () => {
 
   describe('when adding a new player value', () => {
     it('should show a form to add new value', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       const addButton = screen.getByRole('button', { name: /add/i })
@@ -114,7 +114,7 @@ describe('PlayerPage', () => {
     })
 
     it('should add a new value after submitting the form', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.click(screen.getByRole('button', { name: /add/i }))
@@ -137,7 +137,7 @@ describe('PlayerPage', () => {
 
   describe('when deleting a player value', () => {
     it('should show confirmation dialog and delete on confirm', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
@@ -171,7 +171,7 @@ describe('PlayerPage', () => {
     })
 
     it('should show confirm dialog and complete on confirm', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
       await user.click(screen.getByRole('button', { name: /clear all players/i }))

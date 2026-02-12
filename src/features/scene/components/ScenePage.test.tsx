@@ -59,7 +59,7 @@ describe('ScenePage', () => {
     })
 
     it('should show editable value in a dialog when clicking edit', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
@@ -82,7 +82,7 @@ describe('ScenePage', () => {
 
   describe('when setting a new value', () => {
     it('should show a form to add new value', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
@@ -102,7 +102,7 @@ describe('ScenePage', () => {
     })
 
     it('should add a new key after submitting the form', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
@@ -144,7 +144,7 @@ describe('ScenePage', () => {
     })
 
     it('should remove the key after confirming delete', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
@@ -178,7 +178,7 @@ describe('ScenePage', () => {
     })
 
     it('should remove all keys after confirming clear all', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
       await waitFor(() => {
