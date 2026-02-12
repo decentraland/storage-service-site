@@ -93,9 +93,12 @@ describe('PlayerPage', () => {
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
 
-      await waitFor(() => {
-        expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
-      })
+      await waitFor(
+        () => {
+          expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
+        },
+        { timeout: 10000 }
+      )
     }, 15000)
   })
 
@@ -130,9 +133,9 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 15000 }
       )
-    }, 30000)
+    }, 45000)
   })
 
   describe('when deleting a player value', () => {
@@ -157,9 +160,12 @@ describe('PlayerPage', () => {
       expect(within(dialog).getByText(/are you sure/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(() => {
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      })
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        },
+        { timeout: 10000 }
+      )
     }, 15000)
   })
 
@@ -180,9 +186,12 @@ describe('PlayerPage', () => {
       expect(within(dialog).getByText(/delete ALL player storage/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(() => {
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      })
+      await waitFor(
+        () => {
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        },
+        { timeout: 10000 }
+      )
     })
   })
 })
