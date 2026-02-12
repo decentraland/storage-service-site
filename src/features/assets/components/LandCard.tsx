@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { FC } from 'react'
 import { Card, CardActionArea, CardContent, Chip, Typography } from '@mui/material'
 import { useTranslation } from '@dcl/hooks'
@@ -10,7 +11,7 @@ interface LandCardProps {
   onClick: () => void
 }
 
-const LandCard: FC<LandCardProps> = ({ land, onClick }) => {
+const LandCardComponent: FC<LandCardProps> = ({ land, onClick }) => {
   const { t } = useTranslation()
   const position = getLandPosition(land)
   const roleLabel = getRoleLabel(land.role)
@@ -34,6 +35,9 @@ const LandCard: FC<LandCardProps> = ({ land, onClick }) => {
     </Card>
   )
 }
+
+const LandCard = memo(LandCardComponent)
+LandCard.displayName = 'LandCard'
 
 export { LandCard }
 export type { LandCardProps }

@@ -14,17 +14,22 @@ const AssetSelectorPage = () => {
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
 
-  const { data: rentals, isLoading: rentalsLoading } = useGetUserRentalsQuery({ address: wallet ?? '' }, { skip: !wallet })
+  const { data: rentals } = useGetUserRentalsQuery({ address: wallet ?? '' }, { skip: !wallet })
+
+  const tenantTokenIds = useMemo(() => rentals?.tenantRentals?.map(r => r.tokenId) ?? [], [rentals?.tenantRentals])
+  const lessorTokenIds = useMemo(() => rentals?.lessorRentals?.map(r => r.tokenId) ?? [], [rentals?.lessorRentals])
+
   const landsQueryArgs = useMemo(
     () => ({
       address: wallet ?? '',
-      tenantTokenIds: rentals?.tenantRentals?.map(r => r.tokenId) ?? [],
-      lessorTokenIds: rentals?.lessorRentals?.map(r => r.tokenId) ?? []
+      tenantTokenIds,
+      lessorTokenIds
     }),
-    [wallet, rentals]
+    [wallet, tenantTokenIds, lessorTokenIds]
   )
+
   const { data: lands, isLoading: landsLoading } = useGetUserLandsQuery(landsQueryArgs, {
-    skip: !wallet || rentalsLoading
+    skip: !wallet
   })
 
   const { data: dclNames, isLoading: namesLoading } = useGetUserDCLNamesQuery({ address: wallet ?? '' }, { skip: !wallet })
@@ -77,6 +82,10 @@ const AssetSelectorPage = () => {
     [navigate]
   )
 
+  const handleWorldClick = useCallback((worldName: string) => () => handleSelectWorld(worldName), [handleSelectWorld])
+
+  const handleLandClick = useCallback((land: Land) => () => handleSelectLand(land), [handleSelectLand])
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
@@ -102,7 +111,7 @@ const AssetSelectorPage = () => {
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {allWorlds.map(world => (
             <Grid item xs={12} sm={6} md={4} key={world.name}>
-              <WorldCard world={world} onClick={() => handleSelectWorld(world.name)} />
+              <WorldCard world={world} onClick={handleWorldClick(world.name)} />
             </Grid>
           ))}
         </Grid>
@@ -120,7 +129,7 @@ const AssetSelectorPage = () => {
         <Grid container spacing={2}>
           {lands.map(land => (
             <Grid item xs={12} sm={6} md={4} key={land.id}>
-              <LandCard land={land} onClick={() => handleSelectLand(land)} />
+              <LandCard land={land} onClick={handleLandClick(land)} />
             </Grid>
           ))}
         </Grid>

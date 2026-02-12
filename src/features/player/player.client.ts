@@ -37,7 +37,10 @@ const playerClient = client.injectEndpoints({
         }
       },
       serializeQueryArgs: ({ queryArgs, endpointName }) => ({ endpointName, address: queryArgs.address }),
-      providesTags: (_result, _error, { address }) => [{ type: 'PlayerKeys', id: address }]
+      providesTags: (result, _error, { address }) => [
+        { type: 'PlayerKeys', id: address },
+        ...(result?.map(({ key }) => ({ type: 'PlayerKeys' as const, id: `${address}-${key}` })) ?? []) // Individual key tags
+      ]
     }),
 
     getPlayerValue: build.query<PlayerValue, GetPlayerValueParams & AuthParams>({
@@ -74,7 +77,11 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: (_result, _error, { address }) => ['Player', { type: 'PlayerKeys', id: address }]
+      invalidatesTags: (_result, _error, { address, key }) => [
+        'Player',
+        { type: 'PlayerKeys', id: `${address}-${key}` },
+        { type: 'PlayerKeys', id: address }
+      ]
     }),
 
     deletePlayerValue: build.mutation<void, DeletePlayerValueParams & AuthParams>({
@@ -92,7 +99,11 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: (_result, _error, { address }) => ['Player', { type: 'PlayerKeys', id: address }]
+      invalidatesTags: (_result, _error, { address, key }) => [
+        'Player',
+        { type: 'PlayerKeys', id: `${address}-${key}` },
+        { type: 'PlayerKeys', id: address }
+      ]
     }),
 
     clearPlayer: build.mutation<void, ClearPlayerParams & AuthParams>({

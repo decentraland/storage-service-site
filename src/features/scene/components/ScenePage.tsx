@@ -126,7 +126,7 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
 const ScenePage = () => {
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
-  const { data: sceneKeys, isLoading, refetch } = useListSceneKeysQuery({ wallet, isSignedIn }, { skip: !wallet })
+  const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn }, { skip: !wallet })
   const [setSceneValue] = useSetSceneValueMutation()
   const [deleteSceneValue] = useDeleteSceneValueMutation()
   const [clearScene] = useClearSceneMutation()
@@ -158,12 +158,11 @@ const ScenePage = () => {
         const parsedValue = JSON.parse(newValue.trim())
         await setSceneValue({ wallet, isSignedIn, key: newKey.trim(), value: parsedValue })
         setIsAddDialogOpen(false)
-        refetch()
       } catch {
         // Invalid JSON - could show error to user
       }
     }
-  }, [newKey, newValue, setSceneValue, refetch, wallet, isSignedIn])
+  }, [newKey, newValue, setSceneValue, wallet, isSignedIn])
 
   const handleOpenEditDialog = useCallback((key: string) => {
     setSelectedKey(key)
@@ -173,8 +172,7 @@ const ScenePage = () => {
   const handleCloseEditDialog = useCallback(() => {
     setIsEditDialogOpen(false)
     setSelectedKey(null)
-    refetch()
-  }, [refetch])
+  }, [])
 
   const handleOpenDeleteDialog = useCallback((key: string) => {
     setSelectedKey(key)
@@ -191,9 +189,8 @@ const ScenePage = () => {
       await deleteSceneValue({ wallet, isSignedIn, key: selectedKey })
       setIsDeleteDialogOpen(false)
       setSelectedKey(null)
-      refetch()
     }
-  }, [selectedKey, deleteSceneValue, refetch, wallet, isSignedIn])
+  }, [selectedKey, deleteSceneValue, wallet, isSignedIn])
 
   const handleOpenClearDialog = useCallback(() => {
     setIsClearDialogOpen(true)
@@ -206,8 +203,7 @@ const ScenePage = () => {
   const handleConfirmClear = useCallback(async () => {
     await clearScene({ wallet, isSignedIn })
     setIsClearDialogOpen(false)
-    refetch()
-  }, [clearScene, refetch, wallet, isSignedIn])
+  }, [clearScene, wallet, isSignedIn])
 
   if (isLoading) {
     return (

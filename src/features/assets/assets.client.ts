@@ -34,8 +34,8 @@ const assetsClient = client.injectEndpoints({
       serializeQueryArgs: ({ queryArgs, endpointName }) => ({
         endpointName,
         address: queryArgs.address,
-        tenantTokenIds: [...(queryArgs.tenantTokenIds ?? [])].sort(),
-        lessorTokenIds: [...(queryArgs.lessorTokenIds ?? [])].sort()
+        tenantTokenIds: (queryArgs.tenantTokenIds ?? []).slice().sort().join(','),
+        lessorTokenIds: (queryArgs.lessorTokenIds ?? []).slice().sort().join(',')
       }),
       transformResponse: (response: LandQueryResponse) => transformLandQueryResult(response.data),
       providesTags: ['UserLands']

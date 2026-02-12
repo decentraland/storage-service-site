@@ -24,6 +24,11 @@ const getInitialCollapsed = (): boolean => {
   }
 }
 
+const STORAGE_ICON = <StorageIcon />
+const SETTINGS_ICON = <SettingsIcon />
+const VIEW_IN_AR_ICON = <ViewInArIcon />
+const PEOPLE_ICON = <PeopleIcon />
+
 interface NavItem {
   label: string
   icon: ReactNode
@@ -44,10 +49,10 @@ const Sidebar: FC = () => {
 
   const navItems: NavItem[] = useMemo(
     () => [
-      { label: t('sidebar.storages'), icon: <StorageIcon />, route: '/select', preserveParams: false },
-      { label: t('sidebar.environment'), icon: <SettingsIcon />, route: '/env', preserveParams: true },
-      { label: t('sidebar.scene'), icon: <ViewInArIcon />, route: '/scene', preserveParams: true },
-      { label: t('sidebar.player'), icon: <PeopleIcon />, route: '/players', preserveParams: true }
+      { label: t('sidebar.storages'), icon: STORAGE_ICON, route: '/select', preserveParams: false },
+      { label: t('sidebar.environment'), icon: SETTINGS_ICON, route: '/env', preserveParams: true },
+      { label: t('sidebar.scene'), icon: VIEW_IN_AR_ICON, route: '/scene', preserveParams: true },
+      { label: t('sidebar.player'), icon: PEOPLE_ICON, route: '/players', preserveParams: true }
     ],
     [t]
   )

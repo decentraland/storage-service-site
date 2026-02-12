@@ -1,5 +1,5 @@
 import { config } from '@/config'
-import { type WrapSignedFetchError, createQueryFetch, wrapSignedFetch } from '@/lib/fetch'
+import { type WrapSignedFetchError, createScopedQueryFetch, wrapSignedFetch } from '@/lib/fetch'
 import { client } from '@/services/client'
 import type { DeleteEnvParams, EnvKey, EnvValue, GetEnvValueParams, SetEnvParams } from './env.types'
 
@@ -27,8 +27,8 @@ const baseUrl = () => config.get('STORAGE_API_URL')
 const envClient = client.injectEndpoints({
   endpoints: build => ({
     listEnvKeys: build.query<EnvKey[], AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+      queryFn: async ({ wallet, isSignedIn, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<ListEnvKeysResponse>(signedFetch, `${baseUrl()}/env`)
           const data: EnvKey[] = response.data.map(key => ({ key }))
@@ -45,8 +45,8 @@ const envClient = client.injectEndpoints({
     }),
 
     getEnvValue: build.query<EnvValue, GetEnvValueParams & AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn, key }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+      queryFn: async ({ wallet, isSignedIn, key, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<{ value: string }>(signedFetch, `${baseUrl()}/env/${encodeURIComponent(key)}`)
           return { data: { key, value: response.value } }
@@ -63,8 +63,8 @@ const envClient = client.injectEndpoints({
     }),
 
     setEnv: build.mutation<void, SetEnvParams & AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn, key, value }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+      queryFn: async ({ wallet, isSignedIn, key, value, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/env/${encodeURIComponent(key)}`, {
             method: 'PUT',
@@ -83,8 +83,8 @@ const envClient = client.injectEndpoints({
     }),
 
     deleteEnv: build.mutation<void, DeleteEnvParams & AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn, key }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+      queryFn: async ({ wallet, isSignedIn, key, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/env/${encodeURIComponent(key)}`, { method: 'DELETE' })
           if (!response.ok) {
@@ -99,8 +99,8 @@ const envClient = client.injectEndpoints({
     }),
 
     clearEnv: build.mutation<void, AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+      queryFn: async ({ wallet, isSignedIn, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/env`, {
             method: 'DELETE',

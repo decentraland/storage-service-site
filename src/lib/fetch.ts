@@ -89,6 +89,16 @@ const createQueryFetch = (wallet?: string, isSignedIn?: boolean): SignedFetch =>
 }
 
 /**
+ * Creates a SignedFetch with explicit realm/position. Use this for queries/mutations that
+ * cache by realm/position to prevent data contamination when queryArgs don't match URL params.
+ */
+const createScopedQueryFetch = (wallet?: string, isSignedIn?: boolean, realm?: string | null, position?: string | null): SignedFetch => {
+  const metadata = buildSignedFetchMetadata(realm, position)
+  const authFetch = createAuthenticatedFetch(wallet, isSignedIn)
+  return (url: string, init?: RequestInit) => authFetch(url, init, metadata)
+}
+
+/**
  * Wrapper around signedFetch: call fetch, check response.ok, parse JSON.
  * Returns parsed JSON on success. Throws on non-OK or network error (caller can return { error } in catch).
  */
@@ -111,4 +121,12 @@ const wrapSignedFetch = async <T>(signedFetch: SignedFetch, url: string, init: R
   }
 }
 
-export { createAuthenticatedFetch, createQueryFetch, isIdentityValid, wrapSignedFetch, type WrapSignedFetchError, type SignedFetch }
+export {
+  createAuthenticatedFetch,
+  createQueryFetch,
+  createScopedQueryFetch,
+  isIdentityValid,
+  wrapSignedFetch,
+  type WrapSignedFetchError,
+  type SignedFetch
+}

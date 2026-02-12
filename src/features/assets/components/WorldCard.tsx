@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { FC } from 'react'
 import { Card, CardActionArea, CardContent, Chip, Typography } from '@mui/material'
 import { useTranslation } from '@dcl/hooks'
@@ -8,7 +9,7 @@ interface WorldCardProps {
   onClick: () => void
 }
 
-const WorldCard: FC<WorldCardProps> = ({ world, onClick }) => {
+const WorldCardComponent: FC<WorldCardProps> = ({ world, onClick }) => {
   const { t } = useTranslation()
 
   return (
@@ -28,6 +29,9 @@ const WorldCard: FC<WorldCardProps> = ({ world, onClick }) => {
     </Card>
   )
 }
+
+const WorldCard = memo(WorldCardComponent)
+WorldCard.displayName = 'WorldCard'
 
 export { WorldCard }
 export type { WorldCardProps }

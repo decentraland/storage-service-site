@@ -106,7 +106,7 @@ const EnvPage = () => {
   const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
-  const { data: envKeys, isLoading, refetch } = useListEnvKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
+  const { data: envKeys, isLoading } = useListEnvKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [setEnv] = useSetEnvMutation()
   const [deleteEnv] = useDeleteEnvMutation()
   const [clearEnv] = useClearEnvMutation()
@@ -136,9 +136,8 @@ const EnvPage = () => {
     if (newKey.trim() && newValue.trim()) {
       await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() })
       setIsAddDialogOpen(false)
-      refetch()
     }
-  }, [newKey, newValue, setEnv, refetch, wallet, isSignedIn, realm, position])
+  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position])
 
   const handleOpenEditDialog = useCallback((key: string) => {
     setSelectedKey(key)
@@ -148,8 +147,7 @@ const EnvPage = () => {
   const handleCloseEditDialog = useCallback(() => {
     setIsEditDialogOpen(false)
     setSelectedKey(null)
-    refetch()
-  }, [refetch])
+  }, [])
 
   const handleOpenDeleteDialog = useCallback((key: string) => {
     setSelectedKey(key)
@@ -166,9 +164,8 @@ const EnvPage = () => {
       await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey })
       setIsDeleteDialogOpen(false)
       setSelectedKey(null)
-      refetch()
     }
-  }, [selectedKey, deleteEnv, refetch, wallet, isSignedIn, realm, position])
+  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position])
 
   const handleOpenClearDialog = useCallback(() => {
     setIsClearDialogOpen(true)
@@ -181,8 +178,7 @@ const EnvPage = () => {
   const handleConfirmClear = useCallback(async () => {
     await clearEnv({ wallet, isSignedIn, realm, position })
     setIsClearDialogOpen(false)
-    refetch()
-  }, [clearEnv, refetch, wallet, isSignedIn, realm, position])
+  }, [clearEnv, wallet, isSignedIn, realm, position])
 
   if (isLoading) {
     return (
