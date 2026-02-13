@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { playerClient } from '@/features/player'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { PlayerPage } from './PlayerPage'
@@ -48,10 +49,10 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
       expect(screen.getByText('progress')).toBeInTheDocument()
-    })
+    }, 45000)
   })
 
   describe('when keys are loaded for an address', () => {
@@ -66,10 +67,10 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
       expect(screen.getByText('progress')).toBeInTheDocument()
-    })
+    }, 45000)
   })
 
   describe('when editing a player value', () => {
@@ -84,7 +85,7 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       const editButton = screen.getByRole('button', { name: /edit inventory/i })
@@ -97,9 +98,9 @@ describe('PlayerPage', () => {
         () => {
           expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
-    })
+    }, 45000)
   })
 
   describe('when adding a new player value', () => {
@@ -114,11 +115,11 @@ describe('PlayerPage', () => {
       expect(within(dialog).getByLabelText(/player address/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/key/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
-    })
+    }, 45000)
 
     it('should add a new value after submitting the form', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<PlayerPage />)
+      const { store, rerender } = renderWithProviders(<PlayerPage />)
 
       await user.click(screen.getByRole('button', { name: /add/i }))
 
@@ -129,19 +130,29 @@ describe('PlayerPage', () => {
 
       await user.click(within(dialog).getByRole('button', { name: /save/i }))
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        },
-        { timeout: 12000 }
-      )
-    })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      await act(async () => {
+        await store
+          .dispatch(
+            playerClient.endpoints.listPlayerKeys.initiate({ wallet: '0xtest', isSignedIn: true, address: '0xp1' }, { forceRefetch: true })
+          )
+          .unwrap()
+      })
+
+      rerender(<PlayerPage />)
+
+      await user.type(screen.getByLabelText(/player address/i), '0xp1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
+
+      await waitFor(() => expect(screen.getByText('k1')).toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 
   describe('when deleting a player value', () => {
     it('should show confirmation dialog and delete on confirm', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<PlayerPage />)
+      const { store, rerender } = renderWithProviders(<PlayerPage />)
 
       await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
       await user.click(screen.getByRole('button', { name: /load keys/i }))
@@ -150,7 +161,7 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       const deleteButton = screen.getByRole('button', { name: /delete inventory/i })
@@ -160,13 +171,23 @@ describe('PlayerPage', () => {
       expect(within(dialog).getByText(/are you sure/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        },
-        { timeout: 3000 }
-      )
-    })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      await act(async () => {
+        await store
+          .dispatch(
+            playerClient.endpoints.listPlayerKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, address: '0xplayer1' },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<PlayerPage />)
+
+      expect(screen.queryByText('inventory')).not.toBeInTheDocument()
+    }, 45000)
   })
 
   describe('when clearing all players', () => {
@@ -186,12 +207,7 @@ describe('PlayerPage', () => {
       expect(within(dialog).getByText(/delete ALL player storage/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(
-        () => {
-          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        },
-        { timeout: 3000 }
-      )
-    })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 })

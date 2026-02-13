@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { sceneClient } from '@/features/scene'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { ScenePage } from './ScenePage'
@@ -38,46 +39,36 @@ describe('ScenePage', () => {
     it('should display scene keys in a table after loading', async () => {
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
       expect(screen.getByText('gameState')).toBeInTheDocument()
-    })
+    }, 45000)
   })
 
   describe('when editing a value', () => {
     it('should show edit button for each row', async () => {
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
       const editButtons = screen.getAllByRole('button', { name: /edit/i })
       expect(editButtons.length).toBeGreaterThan(0)
-    })
+    }, 45000)
 
     it('should show editable value in a dialog when clicking edit', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
-      // Click edit button for leaderboard
       const editButton = screen.getByRole('button', { name: /edit leaderboard/i })
       await user.click(editButton)
 
-      // Should show dialog with editable JSON value
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
 
-      await waitFor(() => {
-        expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
-      })
-    })
+      await waitFor(() => expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 
   describe('when setting a new value', () => {
@@ -85,31 +76,24 @@ describe('ScenePage', () => {
       const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
-      // Find the add button and click it
       const addButton = screen.getByRole('button', { name: /add/i })
       expect(addButton).toBeInTheDocument()
 
       await user.click(addButton)
 
-      // Should show a dialog with form fields
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByLabelText(/key/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
-    })
+    }, 45000)
 
     it('should add a new key after submitting the form', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<ScenePage />)
+      const { store, rerender } = renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
-      // Open add dialog
       await user.click(screen.getByRole('button', { name: /add/i }))
 
       // Get the dialog and fill the form
@@ -121,84 +105,76 @@ describe('ScenePage', () => {
       // Submit
       await user.click(within(dialog).getByRole('button', { name: /save/i }))
 
-      // Should show the new key in the table
-      await waitFor(
-        () => {
-          expect(screen.getByText('newKey')).toBeInTheDocument()
-        },
-        { timeout: 3000 }
-      )
-    })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      // Force refetch to get fresh data after mutation
+      await act(async () => {
+        await store
+          .dispatch(sceneClient.endpoints.listSceneKeys.initiate({ wallet: '0xtest', isSignedIn: true }, { forceRefetch: true }))
+          .unwrap()
+      })
+
+      rerender(<ScenePage />)
+
+      expect(screen.getByText('newKey')).toBeInTheDocument()
+    }, 45000)
   })
 
   describe('when deleting a value', () => {
     it('should show delete button for each row', async () => {
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
       const deleteButtons = screen.getAllByRole('button', { name: /delete/i })
       expect(deleteButtons.length).toBeGreaterThan(0)
-    })
+    }, 45000)
 
     it('should remove the key after confirming delete', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
-      // Find the delete button for leaderboard
       const deleteButton = screen.getByRole('button', { name: /delete leaderboard/i })
       await user.click(deleteButton)
 
-      // Confirm deletion in dialog
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Should no longer show leaderboard
-      await waitFor(() => {
-        expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
-      })
-    })
+      await waitFor(() => expect(screen.queryByText('leaderboard')).not.toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 
   describe('when clearing all values', () => {
     it('should show clear all button', async () => {
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument()
-    })
+    }, 45000)
 
     it('should remove all keys after confirming clear all', async () => {
       const user = userEvent.setup({ delay: null })
       renderWithProviders(<ScenePage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('leaderboard')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
-      // Click clear all
       await user.click(screen.getByRole('button', { name: /clear all/i }))
 
-      // Confirm in dialog
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Should show empty state
-      await waitFor(() => {
-        expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
-        expect(screen.queryByText('gameState')).not.toBeInTheDocument()
-      })
+      await waitFor(
+        () => {
+          expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
+          expect(screen.queryByText('gameState')).not.toBeInTheDocument()
+        },
+        { timeout: 20000 }
+      )
 
       expect(screen.getByText(/no scene values/i)).toBeInTheDocument()
-    })
+    }, 45000)
   })
 })

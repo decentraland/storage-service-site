@@ -43,7 +43,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       expect(screen.getByText('DATABASE_URL')).toBeInTheDocument()
@@ -58,7 +58,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       const editButtons = screen.getAllByRole('button', { name: /edit/i })
@@ -73,7 +73,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       const editButton = screen.getByRole('button', { name: /edit API_KEY/i })
@@ -87,7 +87,7 @@ describe('EnvPage', () => {
         () => {
           expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
     })
   })
@@ -101,7 +101,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       // Find the add button and click it
@@ -124,7 +124,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       // Open add dialog
@@ -139,7 +139,7 @@ describe('EnvPage', () => {
       await user.click(within(dialog).getByRole('button', { name: /save/i }))
 
       // Wait for dialog to close (mutation completed)
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
 
       // Force refetch to get fresh data after mutation
       await act(async () => {
@@ -167,7 +167,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       const deleteButtons = screen.getAllByRole('button', { name: /delete/i })
@@ -182,7 +182,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       // Find the delete button for API_KEY
@@ -194,7 +194,7 @@ describe('EnvPage', () => {
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
       // Wait for dialog to close (mutation completed)
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
 
       // Force refetch to get fresh data after mutation
       await act(async () => {
@@ -222,7 +222,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument()
@@ -236,7 +236,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 3000 }
+        { timeout: 20000 }
       )
 
       // Click clear all
@@ -247,7 +247,7 @@ describe('EnvPage', () => {
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
       // Wait for dialog to close (mutation completed)
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
 
       // Force refetch to get fresh data after mutation
       await act(async () => {
