@@ -6,7 +6,6 @@ export {
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
-  useListPlayersQuery,
   useSetPlayerValueMutation
 } from './player.client'
 

@@ -13,22 +13,19 @@ import {
 } from './auth.utils'
 import type { AuthContextValue, AuthProviderProps, ProviderSwitchError } from './auth.types'
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) => {
   const { pathname, search } = useLocation()
 
-  // Memoize configuration to prevent recreation on every render
   const config = useMemo(() => createAuthConfig(userConfig), [userConfig])
 
   const [wallet, setWallet] = useState<string>()
   const [avatar, setAvatar] = useState<Avatar>()
   const [isSignedIn, setIsSignedIn] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(true)
+  const [isConnecting, setIsConnecting] = useState(false)
   const [chainId, setChainId] = useState<ChainId>(config.defaultChainId)
 
-  // Sign in - redirect to auth page
   const signIn = useCallback(() => {
     debugLog('Initiating sign in', { pathname, search }, config.debug)
     const redirectUrl = buildRedirectUrl(config, pathname, search)
@@ -40,15 +37,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
     try {
       debugLog('Signing out', { wallet }, config.debug)
 
-      // Disconnect wallet
       connection.disconnect()
 
-      // Clear identity if we have a wallet address
       if (wallet) {
         localStorageClearIdentity(wallet)
       }
 
-      // Clear state
       setWallet(undefined)
       setAvatar(undefined)
       setIsSignedIn(false)
@@ -100,13 +94,12 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
     [chainId, config.debug]
   )
 
-  // Initialize auth state on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        setIsConnecting(true)
         debugLog('Checking auth status', undefined, config.debug)
 
-        // Try to get the previous connection from decentraland-connect
         try {
           const { account: walletAddress, chainId: connectedChainId } = await connection.tryPreviousConnection()
 
@@ -116,7 +109,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
             setWallet(walletAddress)
             setChainId(connectedChainId)
 
-            // Check identity
             let validIdentity = false
             try {
               const identity = localStorageGetIdentity(walletAddress)
@@ -132,7 +124,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
 
             setIsSignedIn(validIdentity)
 
-            // Fetch avatar if identity is valid
             if (validIdentity && config.fetchAvatar) {
               try {
                 debugLog('Fetching avatar', { address: walletAddress }, config.debug)
@@ -144,6 +135,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
               } catch (avatarError) {
                 console.error('Error fetching avatar:', avatarError)
               }
+            } else {
+              setAvatar(undefined)
             }
           } else {
             debugLog('No previous connection found', undefined, config.debug)
@@ -158,8 +151,8 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
       }
     }
 
-    checkAuthStatus()
-  }, [config])
+    void checkAuthStatus()
+  }, [config.debug, config.fetchAvatar])
 
   const contextValue: AuthContextValue = useMemo(
     () => ({

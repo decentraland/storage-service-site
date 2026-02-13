@@ -1,9 +1,11 @@
 import { useCallback } from 'react'
+import { useTranslation } from '@dcl/hooks'
 import { Box, Button, Typography } from 'decentraland-ui2'
 import { useAuth } from '@/features/auth'
 
 const LoginPage = () => {
   const { signIn, isConnecting } = useAuth()
+  const { t } = useTranslation()
 
   const handleClickSignIn = useCallback(() => {
     signIn()
@@ -20,12 +22,12 @@ const LoginPage = () => {
         gap: 2
       }}
     >
-      <Typography variant="h5">Sign in required</Typography>
+      <Typography variant="h5">{t('login_page.title')}</Typography>
       <Typography variant="body1" color="text.secondary">
-        Connect your wallet to manage world and player storage.
+        {t('login_page.subtitle')}
       </Typography>
-      <Button variant="contained" onClick={handleClickSignIn} disabled={isConnecting} aria-label="Sign in">
-        {isConnecting ? 'Connecting…' : 'Sign in'}
+      <Button variant="contained" onClick={handleClickSignIn} disabled={isConnecting} aria-label={t('login_page.sign_in')}>
+        {isConnecting ? t('login_page.connecting') : t('login_page.sign_in')}
       </Button>
     </Box>
   )

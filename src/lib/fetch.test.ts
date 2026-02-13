@@ -76,13 +76,14 @@ describe('fetch utilities', () => {
         mockSignedFetchLib.mockResolvedValue(new Response('{}'))
       })
 
-      it('should use signedFetch', async () => {
+      it('should use signedFetch with empty metadata by default', async () => {
         const authenticatedFetch = createAuthenticatedFetch(mockWallet, true)
 
         await authenticatedFetch('https://api.example.com/data')
 
         expect(mockSignedFetchLib).toHaveBeenCalledWith('https://api.example.com/data', {
-          identity: mockValidIdentity
+          identity: mockValidIdentity,
+          metadata: {}
         })
       })
 
@@ -94,7 +95,20 @@ describe('fetch utilities', () => {
 
         expect(mockSignedFetchLib).toHaveBeenCalledWith('https://api.example.com/data', {
           ...init,
-          identity: mockValidIdentity
+          identity: mockValidIdentity,
+          metadata: {}
+        })
+      })
+
+      it('should forward additionalMetadata to signedFetch', async () => {
+        const authenticatedFetch = createAuthenticatedFetch(mockWallet, true)
+        const metadata = { realm: { serverName: 'my-world.dcl.eth' }, realmName: 'my-world.dcl.eth', parcel: '10,20' }
+
+        await authenticatedFetch('https://api.example.com/data', undefined, metadata)
+
+        expect(mockSignedFetchLib).toHaveBeenCalledWith('https://api.example.com/data', {
+          identity: mockValidIdentity,
+          metadata
         })
       })
     })

@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { config } from '@/config'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
 import { AssetSelectorPage } from './AssetSelectorPage'
@@ -37,9 +38,9 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('Select Asset to Manage')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
 
     it('should display worlds section with DCL names', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -48,11 +49,11 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('myworld.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('testscene.dcl.eth')).toBeInTheDocument()
-    }, 15000)
+    })
 
     it('should display contributable domains', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -61,9 +62,9 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('shared-world.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
 
     it('should display lands section', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -72,12 +73,12 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('My Parcel')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('My Estate')).toBeInTheDocument()
       expect(screen.getByText('Operated Parcel')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 
   describe('when clicking on a world', () => {
@@ -89,13 +90,13 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('myworld.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       await user.click(screen.getByRole('button', { name: /select myworld\.dcl\.eth/i }))
 
       expect(window.location.search).toContain('realm=myworld.dcl.eth')
-    }, 15000)
+    })
   })
 
   describe('when clicking on a land', () => {
@@ -107,20 +108,20 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('My Parcel')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       await user.click(screen.getByRole('button', { name: /select my parcel/i }))
 
       expect(window.location.search).toContain('position=10,20')
-    }, 15000)
+    })
   })
 
   describe('when user has no assets', () => {
     it('should display empty state messages', async () => {
       // Override handlers to return empty data
       server.use(
-        http.post('https://subgraph.decentraland.org/decentraland/land-manager', () =>
+        http.post(config.get('LAND_MANAGER_SUBGRAPH'), () =>
           HttpResponse.json({
             data: {
               ownerParcels: [],
@@ -136,8 +137,8 @@ describe('AssetSelectorPage', () => {
             }
           })
         ),
-        http.post('https://subgraph.decentraland.org/decentraland/marketplace', () => HttpResponse.json({ data: { nfts: [] } })),
-        http.get('https://worlds-content-server.decentraland.zone/wallet/contribute', () => HttpResponse.json({ domains: [] }))
+        http.post(config.get('MARKETPLACE_SUBGRAPH'), () => HttpResponse.json({ data: { nfts: [] } })),
+        http.get(`${config.get('WORLDS_CONTENT_SERVER_URL')}/wallet/contribute`, () => HttpResponse.json({ domains: [] }))
       )
 
       renderWithProviders(<AssetSelectorPage />)
@@ -146,10 +147,10 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('No worlds found')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('No lands found')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 })

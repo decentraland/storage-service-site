@@ -1,11 +1,22 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, configure } from '@testing-library/react'
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
 import { server } from './server'
 
 // Configure React Testing Library
 configure({
   asyncUtilTimeout: 5000
+})
+
+// Warn if any test takes longer than 5 seconds
+beforeEach(() => {
+  const start = Date.now()
+  return () => {
+    const duration = Date.now() - start
+    if (duration > 5000) {
+      console.warn(`⚠️  Test took ${duration}ms - consider optimizing`)
+    }
+  }
 })
 
 // Store original console methods

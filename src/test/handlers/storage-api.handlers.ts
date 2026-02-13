@@ -15,7 +15,6 @@ let worldStore: Record<string, unknown> = {
   gameState: { level: 1, active: true }
 }
 
-/* eslint-disable @typescript-eslint/naming-convention -- wallet addresses as keys */
 let playerStore: Record<string, Record<string, unknown>> = {
   '0xplayer1': {
     inventory: { sword: 1, shield: 2 },
@@ -25,12 +24,9 @@ let playerStore: Record<string, Record<string, unknown>> = {
     inventory: { bow: 1 }
   }
 }
-/* eslint-enable @typescript-eslint/naming-convention */
 
 let envStore: Record<string, string> = {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   API_KEY: 'secret-key',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   DATABASE_URL: 'postgres://localhost:5432/db'
 }
 
@@ -39,7 +35,6 @@ const resetStorageApiStores = () => {
     leaderboard: { scores: [100, 200, 300] },
     gameState: { level: 1, active: true }
   }
-  /* eslint-disable @typescript-eslint/naming-convention -- wallet addresses as keys */
   playerStore = {
     '0xplayer1': {
       inventory: { sword: 1, shield: 2 },
@@ -49,16 +44,16 @@ const resetStorageApiStores = () => {
       inventory: { bow: 1 }
     }
   }
-  /* eslint-enable @typescript-eslint/naming-convention */
   envStore = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     API_KEY: 'secret-key',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     DATABASE_URL: 'postgres://localhost:5432/db'
   }
 }
 
 const confirmDeleteAll = (request: Request) => request.headers.get('X-Confirm-Delete-All')
+
+/** OpenAPI ListStorageItemsResponse / ListEnvKeysResponse pagination */
+const pagination = (total: number, limit = 100, offset = 0) => ({ limit, offset, total })
 
 const storageApiHandlers = [
   // --- World Storage (OpenAPI: /values, /values/{key}) ---
@@ -68,14 +63,13 @@ const storageApiHandlers = [
     if (value === undefined) {
       return HttpResponse.json({ message: 'Value not found' }, { status: 404 })
     }
-    // App expects { key, value }; OpenAPI specifies { value } only
-    return HttpResponse.json({ key, value })
+    return HttpResponse.json({ value })
   }),
   http.put(`${baseUrl()}/values/:key`, async ({ params, request }) => {
     const { key } = params
     const body = (await request.json()) as { value: unknown }
     worldStore[key as string] = body.value
-    return HttpResponse.json({ key, value: body.value })
+    return HttpResponse.json({ value: body.value })
   }),
   http.delete(`${baseUrl()}/values/:key`, ({ params }) => {
     const { key } = params
@@ -90,9 +84,15 @@ const storageApiHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // List world keys (not in OpenAPI; for app compatibility)
-  http.get(`${baseUrl()}/values`, () => {
-    return HttpResponse.json(Object.keys(worldStore).map(key => ({ key })))
+  // List world storage (OpenAPI: ListStorageItemsResponse)
+  http.get(`${baseUrl()}/values`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '100', 10) || 100))
+    const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0)
+    const keys = Object.keys(worldStore).sort()
+    const total = keys.length
+    const data = keys.slice(offset, offset + limit).map(key => ({ key, value: worldStore[key] }))
+    return HttpResponse.json({ data, pagination: pagination(total, limit, offset) })
   }),
 
   // --- Player Storage (OpenAPI: /players, /players/{address}/values, /players/{address}/values/{key}) ---
@@ -102,8 +102,7 @@ const storageApiHandlers = [
     if (value === undefined) {
       return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     }
-    // App expects { key, value }; OpenAPI specifies { value } only
-    return HttpResponse.json({ key, value })
+    return HttpResponse.json({ value })
   }),
   http.put(`${baseUrl()}/players/:address/values/:key`, async ({ params, request }) => {
     const { address, key } = params
@@ -112,7 +111,7 @@ const storageApiHandlers = [
       playerStore[address as string] = {}
     }
     playerStore[address as string][key as string] = body.value
-    return HttpResponse.json({ key, value: body.value })
+    return HttpResponse.json({ value: body.value })
   }),
   http.delete(`${baseUrl()}/players/:address/values/:key`, ({ params }) => {
     const { address, key } = params
@@ -135,17 +134,20 @@ const storageApiHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // List players and list player keys (not in OpenAPI; for app compatibility)
-  http.get(`${baseUrl()}/players`, () => {
-    return HttpResponse.json(Object.keys(playerStore).map(address => ({ address })))
-  }),
-  http.get(`${baseUrl()}/players/:address/values`, ({ params }) => {
+  // List player storage for an address (OpenAPI: ListStorageItemsResponse). GET /players is not in OpenAPI.
+  http.get(`${baseUrl()}/players/:address/values`, ({ params, request }) => {
     const { address } = params
     const playerData = playerStore[address as string]
     if (!playerData) {
-      return HttpResponse.json([])
+      return HttpResponse.json({ data: [], pagination: pagination(0) })
     }
-    return HttpResponse.json(Object.keys(playerData).map(key => ({ key })))
+    const url = new URL(request.url)
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '100', 10) || 100))
+    const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0)
+    const keys = Object.keys(playerData).sort()
+    const total = keys.length
+    const data = keys.slice(offset, offset + limit).map(key => ({ key, value: playerData[key] }))
+    return HttpResponse.json({ data, pagination: pagination(total, limit, offset) })
   }),
 
   // --- Env Storage (OpenAPI: /env, /env/{key}) ---
@@ -176,9 +178,15 @@ const storageApiHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // List env keys (not in OpenAPI; for app compatibility)
-  http.get(`${baseUrl()}/env`, () => {
-    return HttpResponse.json(Object.keys(envStore).map(key => ({ key })))
+  // List env keys (OpenAPI: ListEnvKeysResponse - key names only)
+  http.get(`${baseUrl()}/env`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') ?? '50', 10) || 50))
+    const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0)
+    const data = Object.keys(envStore).sort()
+    const total = data.length
+    const page = data.slice(offset, offset + limit)
+    return HttpResponse.json({ data: page, pagination: pagination(total, limit, offset) })
   })
 ]
 

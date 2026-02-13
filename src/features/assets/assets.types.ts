@@ -33,7 +33,6 @@ interface World {
 /** Raw API response shape from Worlds Content Server */
 interface ContributableDomainRaw {
   name: string
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   user_permissions: string[]
   size: string
   owner: string
@@ -99,6 +98,37 @@ interface LandQueryResponse {
   data: LandQueryResult
 }
 
+type RentalFields = {
+  id: string
+  contractAddress: string
+  tokenId: string
+  lessor: string
+  tenant: string
+  operator: string
+  startedAt: string
+  endsAt: string
+}
+
+interface Rental {
+  id: string
+  type: LandType
+  tokenId: string
+  lessor: string
+  tenant: string
+  operator: string
+  startedAt: Date
+  endsAt: Date
+}
+
+interface RentalsQueryResult {
+  tenantRentals: RentalFields[]
+  lessorRentals: RentalFields[]
+}
+
+interface RentalsQueryResponse {
+  data: RentalsQueryResult
+}
+
 export { LandType, RoleType }
 export type {
   ContributableDomain,
@@ -111,5 +141,9 @@ export type {
   SubgraphAuthorization,
   SubgraphEstate,
   SubgraphParcel,
-  World
+  World,
+  Rental,
+  RentalsQueryResponse,
+  RentalsQueryResult,
+  RentalFields
 }

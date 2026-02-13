@@ -1,6 +1,9 @@
+import { useTranslation } from '@dcl/hooks'
 import { Box, Button, Typography } from 'decentraland-ui2'
 
 const UnauthorizedPage = () => {
+  const { t } = useTranslation()
+
   const handleClickGoBack = () => {
     window.history.back()
   }
@@ -16,12 +19,12 @@ const UnauthorizedPage = () => {
         gap: 2
       }}
     >
-      <Typography variant="h5">Access denied</Typography>
+      <Typography variant="h5">{t('unauthorized_page.title')}</Typography>
       <Typography variant="body1" color="text.secondary">
-        You do not have permission to manage storage for this world or parcel.
+        {t('unauthorized_page.subtitle')}
       </Typography>
-      <Button variant="contained" onClick={handleClickGoBack} aria-label="Go back">
-        Go back
+      <Button variant="contained" onClick={handleClickGoBack} aria-label={t('unauthorized_page.go_back')}>
+        {t('unauthorized_page.go_back')}
       </Button>
     </Box>
   )

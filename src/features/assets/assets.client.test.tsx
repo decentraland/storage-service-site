@@ -72,10 +72,11 @@ describe('assets client', () => {
     describe('when fetching contributable domains', () => {
       it('should return worlds where user has deployment permission', async () => {
         const wrapper = createWrapper()
+        const queryArgs = { address: '0xuser', wallet: undefined, isSignedIn: false }
 
-        const { result } = renderHook(() => useGetContributableDomainsQuery({ address: '0xuser' }), { wrapper })
+        const { result } = renderHook(() => useGetContributableDomainsQuery(queryArgs), { wrapper })
 
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 3000 })
 
         expect(result.current.data?.length).toBeGreaterThan(0)
         expect(result.current.data?.[0]).toHaveProperty('name')

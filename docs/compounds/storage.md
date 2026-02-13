@@ -2,7 +2,7 @@
 
 ## Overview
 
-The storage UI layer ties together auth, permissions, and storage features. The **current route flow** uses **RootRedirect** at `/`: no `realm`/`position` → redirect to **SelectPage** (asset selector); with params → redirect to `/env` with params. Env, Scene, and Players are direct routes. The codebase also includes **StorageGate** and **StoragePage** (tabbed World / Player storage with **WorldStoragePanel**, **PlayerStoragePanel**) for a gated flow; they are not in the current route tree but can be used if a protected `/storage` route is added. Shared utilities: **StorageForm**, **ConfirmDialog**, **useSignedFetch**, **storage-api.ts**. Requests to the storage API use signed fetch when the user is authenticated.
+The storage UI layer ties together auth, permissions, and storage features. The **current route flow** uses **RootRedirect** at `/`: no `realm`/`position` → redirect to **SelectPage** (asset selector); with params → redirect to `/env` with params. Env, Scene, and Players are direct routes wrapped by **StorageLayout** (which renders the **StorageDrawer** sidebar + content area). The codebase also includes **StorageGate** and **StoragePage** (tabbed World / Player storage with **WorldStoragePanel**, **PlayerStoragePanel**) for a gated flow; they are not in the current route tree but can be used if a protected `/storage` route is added. Shared utilities: **StorageForm**, **ConfirmDialog**, **storage-api.ts**. Requests to the storage API use signed fetch when the user is authenticated (via `createQueryFetch` in RTK Query endpoints).
 
 ## Flow (Current Routes)
 
@@ -63,10 +63,16 @@ src/pages/MissingParams/
 └── MissingParamsPage.tsx  # Instructions for realm/position params
 
 src/components/WorldStoragePanel/
-└── WorldStoragePanel.tsx  # World key-value UI; useSignedFetch + storage-api
+└── WorldStoragePanel.tsx  # World key-value UI; passes wallet/isSignedIn to storage-api
 
 src/components/PlayerStoragePanel/
-└── PlayerStoragePanel.tsx  # Player key-value UI; useSignedFetch + storage-api
+└── PlayerStoragePanel.tsx  # Player key-value UI; passes wallet/isSignedIn to storage-api
+
+src/components/StorageDrawer/
+└── StorageDrawer.tsx # Collapsible persistent/mini Drawer with nav items (env, scene, player, storages)
+
+src/components/StorageLayout/
+└── StorageLayout.tsx # Wrapper rendering StorageDrawer sidebar + main content area (Outlet)
 
 src/components/StorageForm/
 └── StorageForm.tsx   # Reusable key + value form; configurable labels/placeholders
@@ -74,15 +80,33 @@ src/components/StorageForm/
 src/components/ConfirmDialog/
 └── ConfirmDialog.tsx # Reusable confirmation dialog; optional destructive styling
 
-src/hooks/
-└── useSignedFetch.ts  # Hook that returns createAuthenticatedFetch(wallet, isSignedIn)
-
 src/utils/
 └── storage-api.ts     # World/player API helpers; accept AuthenticatedFetch
 
 src/lib/
-└── fetch.ts           # createAuthenticatedFetch, signedFetch, isIdentityValid
+└── fetch.ts           # createQueryFetch, createAuthenticatedFetch, wrapSignedFetch
 ```
+
+## StorageDrawer
+
+A collapsible persistent/mini MUI Drawer that provides navigation between storage pages:
+
+- **Nav items**: Environment variables (`/env`), Scene storage (`/scene`), Player storage (`/players`), and a Storages group header.
+- **Collapse/expand**: The drawer toggles between a mini (icons-only) state and a full-width state with labels.
+- Uses React Router's `useNavigate` and `useLocation` to highlight the active route.
+
+## StorageLayout
+
+A layout wrapper component that renders:
+
+- **StorageDrawer** on the left as a sidebar.
+- **Content area** on the right, rendering the matched child route via React Router's `<Outlet />`.
+
+The Env, Scene, and Players pages are nested inside `StorageLayout` in the route tree, so they all share the persistent navigation drawer.
+
+## i18n
+
+All user-facing strings across storage pages use `useTranslation()` from `@dcl/hooks`. Translations are defined in `src/intl/en.json`. The `TranslationProvider` is set up in `App.tsx` wrapping the entire app.
 
 ## StorageGate (optional; not in current routes)
 
@@ -99,7 +123,7 @@ src/lib/
 
 ## WorldStoragePanel
 
-- Uses **useSignedFetch** to get an authenticated fetch function.
+- Passes **wallet** and **isSignedIn** from **useAuth** to storage-api helpers.
 - **StorageForm**: key + value (JSON); onSubmit calls **upsertWorldValue(signedFetch, key, value)**.
 - "Delete by key": text input + Delete button; calls **deleteWorldValue(signedFetch, key)**.
 - "Clear all world storage" button opens **ConfirmDialog**; on confirm calls **clearWorldStorage(signedFetch)**.
@@ -107,7 +131,7 @@ src/lib/
 
 ## PlayerStoragePanel
 
-- Uses **useSignedFetch**.
+- Passes **wallet** and **isSignedIn** from **useAuth** to storage-api helpers.
 - Player address text field scopes the **StorageForm** submit to **upsertPlayerValue(signedFetch, playerAddress, key, value)**.
 - "Delete by player and key": two inputs + Delete; calls **deletePlayerValue(signedFetch, address, key)**.
 - "Clear storage for player" opens a **ConfirmDialog**; on confirm calls **clearPlayerStorage(signedFetch, address)**.
@@ -132,12 +156,6 @@ Reusable dialog with:
 - **confirmLabel**, **cancelLabel** (defaults: "Confirm", "Cancel")
 - **onConfirm**, **onCancel**
 - **isDestructive** (default true): confirm button uses `color="error"` when true
-
-## useSignedFetch
-
-- Uses **useAuth** for `wallet` and `isSignedIn`.
-- Returns a stable function: **createAuthenticatedFetch(wallet, isSignedIn)**.
-- That function uses signed fetch (decentraland-crypto-fetch + identity) when signed in with valid identity; otherwise falls back to regular **fetch**.
 
 ## storage-api.ts
 
@@ -175,6 +193,6 @@ Keys and addresses are encoded with **encodeURIComponent**.
 ## Usage
 
 - To protect any route with realm/position + auth + permissions, wrap content in the same pattern as **StorageGate**: check params → check auth → **PermissionsProvider** → children.
-- To add a new panel that uses signed storage API, use **useSignedFetch** and call **storage-api** helpers with the returned fetch function.
+- To add a new panel that uses signed storage API, pass **wallet** and **isSignedIn** from **useAuth** into RTK Query hooks; the feature's `*.client.ts` uses **createQueryFetch** inside the `queryFn`.
 - For generic key/value forms, use **StorageForm** with custom labels and **onSubmit**.
 - For destructive or important confirmations, use **ConfirmDialog** with **isDestructive** and clear **title**/**message**.

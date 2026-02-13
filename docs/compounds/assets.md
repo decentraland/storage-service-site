@@ -10,7 +10,7 @@ The assets feature lets users **select a world or land** to manage storage when 
 | ----------------------------------- | --------------------------------------------------- |
 | RTK Query (via `@/services/client`) | Data fetching and caching                           |
 | `@/config`                          | `WORLDS_CONTENT_SERVER_URL` (contributable domains) |
-| `@/features/auth`                   | `useAuth().wallet` to scope queries                 |
+| `@/features/auth`                   | `useAuth().wallet`, `isSignedIn` for signed fetch   |
 | Land Manager subgraph               | User's parcels/estates (owned, operator)            |
 | Marketplace subgraph                | User's ENS/DCL names                                |
 | Worlds Content Server               | `GET /wallet/contribute` (contributable domains)    |
@@ -32,11 +32,11 @@ src/features/assets/
 
 ## RTK Query Endpoints
 
-| Endpoint                  | Hook                              | Description                                                                                                         |
-| ------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `getUserLands`            | `useGetUserLandsQuery`            | POST to Land Manager subgraph; returns `Land[]` (parcels + estates, owned + operator)                               |
-| `getUserDCLNames`         | `useGetUserDCLNamesQuery`         | POST to Marketplace subgraph; returns `string[]` (e.g. `myworld.dcl.eth`)                                           |
-| `getContributableDomains` | `useGetContributableDomainsQuery` | GET `{WORLDS_CONTENT_SERVER_URL}/wallet/contribute`; returns `ContributableDomain[]` (worlds where user can deploy) |
+| Endpoint                  | Hook                              | Description                                                                                                                                                               |
+| ------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getUserLands`            | `useGetUserLandsQuery`            | POST to Land Manager subgraph; returns `Land[]` (parcels + estates, owned + operator)                                                                                     |
+| `getUserDCLNames`         | `useGetUserDCLNamesQuery`         | POST to Marketplace subgraph; returns `string[]` (e.g. `myworld.dcl.eth`)                                                                                                 |
+| `getContributableDomains` | `useGetContributableDomainsQuery` | GET `{WORLDS_CONTENT_SERVER_URL}/wallet/contribute` (signed); returns `ContributableDomain[]`. Caller passes `wallet` and `isSignedIn` from `useAuth()` in the query arg. |
 
 Tags: `UserLands`, `UserDCLNames`, `ContributableDomains`.
 
@@ -48,7 +48,8 @@ Tags: `UserLands`, `UserDCLNames`, `ContributableDomains`.
 
 ## AssetSelectorPage
 
-- Uses **useAuth().wallet**; skips all queries if no wallet.
+- Uses **useAuth().wallet** and **isSignedIn**; skips all queries if no wallet.
+- Passes **wallet** and **isSignedIn** into **getContributableDomains** so the contribute request is signed.
 - Combines **getUserDCLNames** (owner) and **getContributableDomains** (collaborator) into **allWorlds** (deduplicated by name).
 - Renders "Select Asset to Manage", then **Worlds** (WorldCard per world) and **Lands** (LandCard per land).
 - **handleSelectWorld(name)** → `navigate(\`/env?realm=${name}\`)`.

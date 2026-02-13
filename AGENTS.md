@@ -8,17 +8,18 @@ Storage Service UI - A Decentraland dApp for managing World and Player storage (
 
 Before making changes, read the relevant compound docs in `docs/compounds/`:
 
-| Document                                          | When to Read                                                     |
-| ------------------------------------------------- | ---------------------------------------------------------------- |
-| [architecture.md](docs/compounds/architecture.md) | Understanding project structure, providers, folder conventions   |
-| [auth.md](docs/compounds/auth.md)                 | Working with authentication, wallet connection, identity         |
-| [testing.md](docs/compounds/testing.md)           | Writing tests, MSW handlers, Vitest configuration                |
-| [permissions.md](docs/compounds/permissions.md)   | Working with realm/parcel permission checks, PermissionsProvider |
-| [env.md](docs/compounds/env.md)                   | Working with environment variables storage feature               |
-| [scene.md](docs/compounds/scene.md)               | Working with scene (world) JSON storage feature                  |
-| [player.md](docs/compounds/player.md)             | Working with per-player JSON storage feature                     |
-| [storage.md](docs/compounds/storage.md)           | Storage UI pages, shared components, hooks, signed fetch         |
-| [assets.md](docs/compounds/assets.md)             | Asset selector (lands, worlds), SelectPage, subgraphs            |
+| Document                                          | When to Read                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| [architecture.md](docs/compounds/architecture.md) | Understanding project structure, providers, folder conventions     |
+| [auth.md](docs/compounds/auth.md)                 | Working with authentication, wallet connection, identity           |
+| [testing.md](docs/compounds/testing.md)           | Writing tests, MSW handlers, Vitest configuration                  |
+| [permissions.md](docs/compounds/permissions.md)   | Working with realm/parcel permission checks, PermissionsProvider   |
+| [env.md](docs/compounds/env.md)                   | Working with environment variables storage feature                 |
+| [scene.md](docs/compounds/scene.md)               | Working with scene (world) JSON storage feature                    |
+| [player.md](docs/compounds/player.md)             | Working with per-player JSON storage feature                       |
+| [storage.md](docs/compounds/storage.md)           | Storage UI pages, shared components, hooks, signed fetch           |
+| [assets.md](docs/compounds/assets.md)             | Asset selector (lands, worlds), SelectPage, subgraphs              |
+| [rtk-query.md](docs/compounds/rtk-query.md)       | Adding or changing API endpoints, signed fetch, RTK Query patterns |
 
 ## Code Conventions
 
@@ -95,9 +96,14 @@ describe('when [condition]', () => {
 
 ### Adding API Endpoints
 
-1. Add to `src/services/client.ts` using RTK Query
-2. Add MSW handlers in `src/test/handlers/`
-3. Use `createAuthenticatedFetch` for signed requests
+- **Public / non-signed APIs** (subgraphs, permissions, etc.): Add endpoints via `client.injectEndpoints` in the feature's `*.client.ts` with the standard `query` that returns `{ url, method, body }`. These use the default `baseQuery` in [src/services/client.ts](src/services/client.ts). Add MSW handlers in `src/test/handlers/`.
+- **Signed-fetch APIs** (World Storage Service and any ADR-44–protected API): Add endpoints that accept `wallet` and `isSignedIn` in the query or mutation argument. Inside the `queryFn`, call `createQueryFetch(wallet, isSignedIn)` to get a fetch function, then use `wrapSignedFetch(signedFetch, url, init)` from `@/lib/fetch`. Components pass `wallet` and `isSignedIn` from `useAuth()` into every query and mutation. See [docs/compounds/rtk-query.md](docs/compounds/rtk-query.md) and the env, scene, player, and assets clients for examples.
+
+### RTK Query and signed fetch
+
+- Single API slice: one `client` in [src/services/client.ts](src/services/client.ts); features inject endpoints via `client.injectEndpoints`.
+- **Wrappers**: `createQueryFetch(wallet, isSignedIn)` (called inside `queryFn`; reads realm/position from URL), `wrapSignedFetch(signedFetch, url, init)` (used inside RTK Query `queryFn` for signed requests; returns parsed JSON or throws `WrapSignedFetchError`). Pass `wallet` and `isSignedIn` from `useAuth()` into hooks; use `createQueryFetch` + `wrapSignedFetch` inside `queryFn` when the endpoint requires signed fetch.
+- For signed endpoints, use `serializeQueryArgs` so the cache key excludes auth state (e.g. serialize by `endpointName` and logical params like `address`).
 
 ### Modifying Auth Flow
 
@@ -107,9 +113,9 @@ describe('when [condition]', () => {
 
 ### Adding Storage Operations
 
-1. Read [storage.md](docs/compounds/storage.md) for the storage UI layer and [env.md](docs/compounds/env.md), [scene.md](docs/compounds/scene.md), or [player.md](docs/compounds/player.md) for the relevant feature
-2. For RTK Query–based features: add endpoints in the feature's `*.client.ts`, add MSW handlers in `src/test/handlers/`, and use tag invalidation for cache updates
-3. For signed-fetch–based panels: use `useSignedFetch` and the helpers in `src/utils/storage-api.ts`
+1. Read [storage.md](docs/compounds/storage.md) for the storage UI layer and [env.md](docs/compounds/env.md), [scene.md](docs/compounds/scene.md), or [player.md](docs/compounds/player.md) for the relevant feature.
+2. Storage endpoints require **signed fetch** (ADR-44). In the feature's `*.client.ts`, add endpoints with a `queryFn` that receives `wallet` and `isSignedIn`, calls `createQueryFetch(wallet, isSignedIn)`, and uses `wrapSignedFetch(signedFetch, url, init)` from `@/lib/fetch`. In the page or component, pass `wallet` and `isSignedIn` from `useAuth()` into every storage query and mutation. Use `skip: !wallet` on queries so they only run when the user can sign.
+3. Add MSW handlers in `src/test/handlers/storage-api.handlers.ts`; in tests pass `wallet: undefined, isSignedIn: false` so `createAuthenticatedFetch` falls back to plain fetch and MSW can intercept.
 
 ## Environment
 

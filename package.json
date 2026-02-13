@@ -80,7 +80,7 @@
   "bugs": {
     "url": "https://github.com/decentraland/storage-service-site/issues"
   },
-  "homepage": "https://decentraland.org/storage",
+  "homepage": "",
   "engines": {
     "node": ">=20",
     "npm": ">=8"

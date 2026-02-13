@@ -1,8 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, CircularProgress, Grid, Typography } from '@mui/material'
+import { useTranslation } from '@dcl/hooks'
 import { useAuth } from '@/features/auth'
-import { useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery } from '../assets.client'
+import { useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery, useGetUserRentalsQuery } from '../assets.client'
 import type { Land, World } from '../assets.types'
 import { getLandPosition } from '../assets.utils'
 import { LandCard } from './LandCard'
@@ -10,13 +11,33 @@ import { WorldCard } from './WorldCard'
 
 const AssetSelectorPage = () => {
   const navigate = useNavigate()
-  const { wallet } = useAuth()
+  const { wallet, isSignedIn } = useAuth()
+  const { t } = useTranslation()
 
-  const { data: lands, isLoading: landsLoading } = useGetUserLandsQuery({ address: wallet ?? '' }, { skip: !wallet })
+  const { data: rentals } = useGetUserRentalsQuery({ address: wallet ?? '' }, { skip: !wallet })
+
+  const tenantTokenIds = useMemo(() => rentals?.tenantRentals?.map(r => r.tokenId) ?? [], [rentals?.tenantRentals])
+  const lessorTokenIds = useMemo(() => rentals?.lessorRentals?.map(r => r.tokenId) ?? [], [rentals?.lessorRentals])
+
+  const landsQueryArgs = useMemo(
+    () => ({
+      address: wallet ?? '',
+      tenantTokenIds,
+      lessorTokenIds
+    }),
+    [wallet, tenantTokenIds, lessorTokenIds]
+  )
+
+  const { data: lands, isLoading: landsLoading } = useGetUserLandsQuery(landsQueryArgs, {
+    skip: !wallet
+  })
 
   const { data: dclNames, isLoading: namesLoading } = useGetUserDCLNamesQuery({ address: wallet ?? '' }, { skip: !wallet })
 
-  const { data: contributable, isLoading: contribLoading } = useGetContributableDomainsQuery({ address: wallet ?? '' }, { skip: !wallet })
+  const { data: contributable, isLoading: contribLoading } = useGetContributableDomainsQuery(
+    { address: wallet ?? '', wallet, isSignedIn },
+    { skip: !wallet }
+  )
 
   const isLoading = landsLoading || namesLoading || contribLoading
 
@@ -61,10 +82,14 @@ const AssetSelectorPage = () => {
     [navigate]
   )
 
+  const handleWorldClick = useCallback((worldName: string) => () => handleSelectWorld(worldName), [handleSelectWorld])
+
+  const handleLandClick = useCallback((land: Land) => () => handleSelectLand(land), [handleSelectLand])
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress aria-label="Loading assets" />
+        <CircularProgress aria-label={t('select_page.loading')} />
       </Box>
     )
   }
@@ -72,44 +97,44 @@ const AssetSelectorPage = () => {
   return (
     <Box p={3}>
       <Typography variant="h4" gutterBottom>
-        Select Asset to Manage
+        {t('select_page.title')}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Choose a world or land parcel to manage its storage.
+        {t('select_page.subtitle')}
       </Typography>
 
       {/* Worlds Section */}
       <Typography variant="h5" sx={{ mb: 2 }}>
-        Worlds
+        {t('select_page.worlds')}
       </Typography>
       {allWorlds.length > 0 ? (
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {allWorlds.map(world => (
             <Grid item xs={12} sm={6} md={4} key={world.name}>
-              <WorldCard world={world} onClick={() => handleSelectWorld(world.name)} />
+              <WorldCard world={world} onClick={handleWorldClick(world.name)} />
             </Grid>
           ))}
         </Grid>
       ) : (
         <Typography color="text.secondary" sx={{ mb: 4 }}>
-          No worlds found
+          {t('select_page.no_worlds')}
         </Typography>
       )}
 
       {/* Lands Section */}
       <Typography variant="h5" sx={{ mb: 2 }}>
-        Lands
+        {t('select_page.lands')}
       </Typography>
       {lands && lands.length > 0 ? (
         <Grid container spacing={2}>
           {lands.map(land => (
             <Grid item xs={12} sm={6} md={4} key={land.id}>
-              <LandCard land={land} onClick={() => handleSelectLand(land)} />
+              <LandCard land={land} onClick={handleLandClick(land)} />
             </Grid>
           ))}
         </Grid>
       ) : (
-        <Typography color="text.secondary">No lands found</Typography>
+        <Typography color="text.secondary">{t('select_page.no_lands')}</Typography>
       )}
     </Box>
   )

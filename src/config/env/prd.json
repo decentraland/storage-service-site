@@ -2,7 +2,10 @@
   "AUTH_URL": "/auth",
   "PEER_URL": "https://peer.decentraland.org",
   "WORLDS_CONTENT_SERVER_URL": "https://worlds-content-server.decentraland.org",
-  "STORAGE_API_URL": "https://worlds-content-server.decentraland.org",
-  "LAND_MANAGER_SUBGRAPH": "https://subgraph.decentraland.org/decentraland/land-manager",
-  "MARKETPLACE_SUBGRAPH": "https://subgraph.decentraland.org/decentraland/marketplace"
+  "STORAGE_API_URL": "https://storage.decentraland.org",
+  "LAND_MANAGER_SUBGRAPH": "https://subgraph.decentraland.org/land-manager",
+  "MARKETPLACE_SUBGRAPH": "https://subgraph.decentraland.org/marketplace",
+  "RENTALS_SUBGRAPH": "https://subgraph.decentraland.org/rentals-ethereum-mainnet",
+  "LAND_REGISTRY_ADDRESS": "0xf87e31492faf9a91b02ee0deaad50d51d56d5d4d",
+  "ESTATE_REGISTRY_ADDRESS": "0x959e104e1a4db6317fa58f8295f586e1a978c297"
 }

@@ -1,12 +1,18 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { TranslationProvider } from '@dcl/hooks'
 import { DclThemeProvider, darkTheme } from 'decentraland-ui2'
+import en from '@/intl/en.json'
 import type { World } from '../assets.types'
 import { WorldCard } from './WorldCard'
 
 const renderWithTheme = (ui: React.ReactElement) => {
-  return render(<DclThemeProvider theme={darkTheme}>{ui}</DclThemeProvider>)
+  return render(
+    <TranslationProvider locale="en" translations={{ en }}>
+      <DclThemeProvider theme={darkTheme}>{ui}</DclThemeProvider>
+    </TranslationProvider>
+  )
 }
 
 describe('WorldCard', () => {

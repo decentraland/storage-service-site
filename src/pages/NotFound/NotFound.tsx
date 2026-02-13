@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from '@dcl/hooks'
 import { Box, Button, Typography } from 'decentraland-ui2'
 
 const NotFound = () => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleGoHome = () => {
     navigate('/')
@@ -20,16 +22,16 @@ const NotFound = () => {
       }}
     >
       <Typography variant="h2" gutterBottom>
-        404
+        {t('not_found_page.code')}
       </Typography>
       <Typography variant="h5" color="text.secondary" gutterBottom>
-        Page Not Found
+        {t('not_found_page.title')}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        The page you are looking for does not exist.
+        {t('not_found_page.subtitle')}
       </Typography>
       <Button variant="contained" onClick={handleGoHome}>
-        Go Home
+        {t('not_found_page.go_home')}
       </Button>
     </Box>
   )

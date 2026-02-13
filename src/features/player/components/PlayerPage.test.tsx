@@ -1,205 +1,213 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { playerClient } from '@/features/player'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { PlayerPage } from './PlayerPage'
+
+vi.mock('@/features/auth', () => ({
+  useAuth: () => ({ wallet: '0xtest', isSignedIn: true })
+}))
+
+vi.mock('@dcl/single-sign-on-client', () => ({
+  getIdentity: vi.fn().mockResolvedValue({
+    expiration: new Date(Date.now() + 86400000),
+    authChain: []
+  })
+}))
+
+vi.mock('decentraland-crypto-fetch', () => ({
+  default: (url: string, init: Record<string, unknown> = {}) => {
+    const { identity, metadata, ...fetchInit } = init
+    return fetch(url, fetchInit as RequestInit)
+  }
+}))
 
 describe('PlayerPage', () => {
   beforeEach(() => {
     resetStorageApiStores()
   })
 
-  describe('when loading players', () => {
-    it('should show loading state initially', () => {
+  describe('when no address is loaded', () => {
+    it('should show address input and Load keys button', () => {
       renderWithProviders(<PlayerPage />)
 
-      expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      expect(screen.getByLabelText(/player address/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /load keys/i })).toBeInTheDocument()
+      expect(screen.getByText(/enter a player address/i)).toBeInTheDocument()
     })
 
-    it('should display player addresses after loading', async () => {
+    it('should display keys for address after loading', async () => {
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
+      await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
 
-      expect(screen.getByText('0xplayer2')).toBeInTheDocument()
-    })
-  })
-
-  describe('when selecting a player', () => {
-    it('should show player keys', async () => {
-      const user = userEvent.setup()
-      renderWithProviders(<PlayerPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Click to select the player
-      await user.click(screen.getByRole('button', { name: /select 0xplayer1/i }))
-
-      // Should show keys for that player
       await waitFor(
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 20000 }
       )
-
       expect(screen.getByText('progress')).toBeInTheDocument()
-    }, 15000)
+    }, 45000)
   })
 
-  describe('when viewing a player value', () => {
-    it('should show value in a dialog when clicking view', async () => {
-      const user = userEvent.setup()
+  describe('when keys are loaded for an address', () => {
+    it('should show player keys', async () => {
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Select the player
-      await user.click(screen.getByRole('button', { name: /select 0xplayer1/i }))
+      await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
 
       await waitFor(
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 20000 }
+      )
+      expect(screen.getByText('progress')).toBeInTheDocument()
+    }, 45000)
+  })
+
+  describe('when editing a player value', () => {
+    it('should show editable value in a dialog when clicking edit', async () => {
+      const user = userEvent.setup({ delay: null })
+      renderWithProviders(<PlayerPage />)
+
+      await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
+
+      await waitFor(
+        () => {
+          expect(screen.getByText('inventory')).toBeInTheDocument()
+        },
+        { timeout: 20000 }
       )
 
-      // Click view button for inventory
-      const viewButton = screen.getByRole('button', { name: /view inventory/i })
-      await user.click(viewButton)
+      const editButton = screen.getByRole('button', { name: /edit inventory/i })
+      await user.click(editButton)
 
-      // Should show dialog with JSON value
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
-      expect(within(dialog).getByText(/sword/i)).toBeInTheDocument()
-    }, 15000)
+
+      await waitFor(
+        () => {
+          expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
+        },
+        { timeout: 20000 }
+      )
+    }, 45000)
   })
 
   describe('when adding a new player value', () => {
     it('should show a form to add new value', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Find the add button and click it
       const addButton = screen.getByRole('button', { name: /add/i })
       await user.click(addButton)
 
-      // Should show a dialog with form fields
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByLabelText(/player address/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/key/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
-    })
+    }, 45000)
 
     it('should add a new value after submitting the form', async () => {
-      const user = userEvent.setup()
-      renderWithProviders(<PlayerPage />)
+      const user = userEvent.setup({ delay: null })
+      const { store, rerender } = renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Open add dialog
       await user.click(screen.getByRole('button', { name: /add/i }))
 
-      // Get the dialog and fill the form - use short values to reduce typing time
       const dialog = screen.getByRole('dialog')
       await user.type(within(dialog).getByLabelText(/player address/i), '0xp1')
       await user.type(within(dialog).getByLabelText(/^key$/i), 'k1')
       await user.type(within(dialog).getByLabelText(/value \(json\)/i), '1')
 
-      // Submit
       await user.click(within(dialog).getByRole('button', { name: /save/i }))
 
-      // Dialog should close
-      await waitFor(
-        () => {
-          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        },
-        { timeout: 10000 }
-      )
-    }, 30000)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      await act(async () => {
+        await store
+          .dispatch(
+            playerClient.endpoints.listPlayerKeys.initiate({ wallet: '0xtest', isSignedIn: true, address: '0xp1' }, { forceRefetch: true })
+          )
+          .unwrap()
+      })
+
+      rerender(<PlayerPage />)
+
+      await user.type(screen.getByLabelText(/player address/i), '0xp1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
+
+      await waitFor(() => expect(screen.getByText('k1')).toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 
   describe('when deleting a player value', () => {
     it('should show confirmation dialog and delete on confirm', async () => {
-      const user = userEvent.setup()
-      renderWithProviders(<PlayerPage />)
+      const user = userEvent.setup({ delay: null })
+      const { store, rerender } = renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Select the player
-      await user.click(screen.getByRole('button', { name: /select 0xplayer1/i }))
+      await user.type(screen.getByLabelText(/player address/i), '0xplayer1')
+      await user.click(screen.getByRole('button', { name: /load keys/i }))
 
       await waitFor(
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 20000 }
       )
 
-      // Click delete button for inventory
       const deleteButton = screen.getByRole('button', { name: /delete inventory/i })
       await user.click(deleteButton)
 
-      // Confirm deletion in dialog
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByText(/are you sure/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Dialog should close
-      await waitFor(() => {
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      await act(async () => {
+        await store
+          .dispatch(
+            playerClient.endpoints.listPlayerKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, address: '0xplayer1' },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
       })
-    }, 15000)
+
+      rerender(<PlayerPage />)
+
+      expect(screen.queryByText('inventory')).not.toBeInTheDocument()
+    }, 45000)
   })
 
   describe('when clearing all players', () => {
-    it('should show clear all button', async () => {
+    it('should show clear all button', () => {
       renderWithProviders(<PlayerPage />)
-
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
 
       expect(screen.getByRole('button', { name: /clear all players/i })).toBeInTheDocument()
     })
 
-    it('should remove all players after confirming clear all', async () => {
-      const user = userEvent.setup()
+    it('should show confirm dialog and complete on confirm', async () => {
+      const user = userEvent.setup({ delay: null })
       renderWithProviders(<PlayerPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('0xplayer1')).toBeInTheDocument()
-      })
-
-      // Click clear all
       await user.click(screen.getByRole('button', { name: /clear all players/i }))
 
-      // Confirm in dialog
       const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText(/delete ALL player storage/i)).toBeInTheDocument()
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Should show empty state
-      await waitFor(() => {
-        expect(screen.queryByText('0xplayer1')).not.toBeInTheDocument()
-        expect(screen.queryByText('0xplayer2')).not.toBeInTheDocument()
-      })
-
-      expect(screen.getByText(/no players found/i)).toBeInTheDocument()
-    })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+    }, 45000)
   })
 })

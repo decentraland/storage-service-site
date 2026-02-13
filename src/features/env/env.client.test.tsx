@@ -6,6 +6,8 @@ import { resetStorageApiStores } from '@/test/handlers'
 import { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from './env.client'
 import type { EnvKey } from './env.types'
 
+const authParams = { wallet: undefined, isSignedIn: false, realm: null, position: null }
+
 const createWrapper = () => {
   const store = setupStore()
   const Wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>
@@ -22,7 +24,7 @@ describe('env client', () => {
       it('should return list of keys', async () => {
         const wrapper = createWrapper()
 
-        const { result } = renderHook(() => useListEnvKeysQuery(), { wrapper })
+        const { result } = renderHook(() => useListEnvKeysQuery(authParams), { wrapper })
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -41,10 +43,10 @@ describe('env client', () => {
         const { result } = renderHook(() => useSetEnvMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ key: 'NEW_KEY', value: 'new-value' })
+          await result.current[0]({ ...authParams, key: 'NEW_KEY', value: 'new-value' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -57,10 +59,10 @@ describe('env client', () => {
         const { result } = renderHook(() => useDeleteEnvMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ key: 'API_KEY' })
+          await result.current[0]({ ...authParams, key: 'API_KEY' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -73,10 +75,10 @@ describe('env client', () => {
         const { result } = renderHook(() => useClearEnvMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]()
+          await result.current[0](authParams)
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
