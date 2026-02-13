@@ -126,9 +126,9 @@ describe('ScenePage', () => {
         () => {
           expect(screen.getByText('newKey')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
   })
 
   describe('when deleting a value', () => {

@@ -78,7 +78,7 @@ describe('scene client', () => {
           await result.current[0]({ ...authParams, key: 'newKey', value: { data: 'test' } })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -94,7 +94,7 @@ describe('scene client', () => {
           await result.current[0]({ ...authParams, key: 'leaderboard' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -110,7 +110,7 @@ describe('scene client', () => {
           await result.current[0](authParams)
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })

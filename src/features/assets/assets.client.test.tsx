@@ -76,13 +76,13 @@ describe('assets client', () => {
 
         const { result } = renderHook(() => useGetContributableDomainsQuery(queryArgs), { wrapper })
 
-        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 10000 })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 3000 })
 
         expect(result.current.data?.length).toBeGreaterThan(0)
         expect(result.current.data?.[0]).toHaveProperty('name')
         expect(result.current.data?.[0]).toHaveProperty('userPermissions')
         expect(result.current.data?.[0].name).toBe('shared-world.dcl.eth')
-      }, 15000)
+      })
     })
   })
 })

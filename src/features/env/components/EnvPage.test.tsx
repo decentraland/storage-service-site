@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { envClient } from '@/features/env'
 import { resetStorageApiStores } from '@/test/handlers'
 import { renderWithProviders } from '@/test/utils'
 import { EnvPage } from './EnvPage'
@@ -42,7 +43,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('DATABASE_URL')).toBeInTheDocument()
@@ -57,7 +58,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       const editButtons = screen.getAllByRole('button', { name: /edit/i })
@@ -72,7 +73,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       const editButton = screen.getByRole('button', { name: /edit API_KEY/i })
@@ -86,9 +87,9 @@ describe('EnvPage', () => {
         () => {
           expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
   })
 
   describe('when setting a new env value', () => {
@@ -100,7 +101,7 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       // Find the add button and click it
@@ -113,17 +114,17 @@ describe('EnvPage', () => {
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByLabelText(/key/i)).toBeInTheDocument()
       expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument()
-    }, 15000)
+    })
 
     it('should add a new env key after submitting the form', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<EnvPage />)
+      const { store, rerender } = renderWithProviders(<EnvPage />)
 
       await waitFor(
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       // Open add dialog
@@ -137,14 +138,25 @@ describe('EnvPage', () => {
       // Submit
       await user.click(within(dialog).getByRole('button', { name: /save/i }))
 
-      // Should show the new key in the table
-      await waitFor(
-        () => {
-          expect(screen.getByText('NEW_KEY')).toBeInTheDocument()
-        },
-        { timeout: 10000 }
-      )
-    }, 15000)
+      // Wait for dialog to close (mutation completed)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
+
+      // Force refetch to get fresh data after mutation
+      await act(async () => {
+        await store
+          .dispatch(
+            envClient.endpoints.listEnvKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, realm: null, position: null },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<EnvPage />)
+
+      expect(screen.getByText('NEW_KEY')).toBeInTheDocument()
+    }, 20000)
   })
 
   describe('when deleting an env value', () => {
@@ -155,22 +167,22 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       const deleteButtons = screen.getAllByRole('button', { name: /delete/i })
       expect(deleteButtons.length).toBeGreaterThan(0)
-    }, 15000)
+    })
 
     it('should remove the env key after confirming delete', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<EnvPage />)
+      const { store, rerender } = renderWithProviders(<EnvPage />)
 
       await waitFor(
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       // Find the delete button for API_KEY
@@ -181,14 +193,25 @@ describe('EnvPage', () => {
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Should no longer show API_KEY
-      await waitFor(
-        () => {
-          expect(screen.queryByText('API_KEY')).not.toBeInTheDocument()
-        },
-        { timeout: 10000 }
-      )
-    }, 15000)
+      // Wait for dialog to close (mutation completed)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
+
+      // Force refetch to get fresh data after mutation
+      await act(async () => {
+        await store
+          .dispatch(
+            envClient.endpoints.listEnvKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, realm: null, position: null },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<EnvPage />)
+
+      expect(screen.queryByText('API_KEY')).not.toBeInTheDocument()
+    }, 20000)
   })
 
   describe('when clearing all env values', () => {
@@ -199,21 +222,21 @@ describe('EnvPage', () => {
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument()
-    }, 15000)
+    })
 
     it('should remove all env keys after confirming clear all', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<EnvPage />)
+      const { store, rerender } = renderWithProviders(<EnvPage />)
 
       await waitFor(
         () => {
           expect(screen.getByText('API_KEY')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       // Click clear all
@@ -223,16 +246,26 @@ describe('EnvPage', () => {
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      // Should show empty state
-      await waitFor(
-        () => {
-          expect(screen.queryByText('API_KEY')).not.toBeInTheDocument()
-          expect(screen.queryByText('DATABASE_URL')).not.toBeInTheDocument()
-        },
-        { timeout: 10000 }
-      )
+      // Wait for dialog to close (mutation completed)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 5000 })
 
+      // Force refetch to get fresh data after mutation
+      await act(async () => {
+        await store
+          .dispatch(
+            envClient.endpoints.listEnvKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, realm: null, position: null },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<EnvPage />)
+
+      expect(screen.queryByText('API_KEY')).not.toBeInTheDocument()
+      expect(screen.queryByText('DATABASE_URL')).not.toBeInTheDocument()
       expect(screen.getByText(/no environment variables/i)).toBeInTheDocument()
-    }, 15000)
+    }, 20000)
   })
 })

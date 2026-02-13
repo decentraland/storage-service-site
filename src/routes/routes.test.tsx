@@ -59,9 +59,9 @@ describe('AppRoutes', () => {
         () => {
           expect(screen.getByRole('heading', { name: /select asset to manage/i })).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
   })
 
   describe('when navigating to an unknown route', () => {

@@ -38,9 +38,9 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('Select Asset to Manage')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
 
     it('should display worlds section with DCL names', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -49,11 +49,11 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('myworld.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('testscene.dcl.eth')).toBeInTheDocument()
-    }, 15000)
+    })
 
     it('should display contributable domains', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -62,9 +62,9 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('shared-world.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
 
     it('should display lands section', async () => {
       renderWithProviders(<AssetSelectorPage />)
@@ -73,12 +73,12 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('My Parcel')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('My Estate')).toBeInTheDocument()
       expect(screen.getByText('Operated Parcel')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 
   describe('when clicking on a world', () => {
@@ -90,13 +90,13 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('myworld.dcl.eth')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       await user.click(screen.getByRole('button', { name: /select myworld\.dcl\.eth/i }))
 
       expect(window.location.search).toContain('realm=myworld.dcl.eth')
-    }, 15000)
+    })
   })
 
   describe('when clicking on a land', () => {
@@ -108,13 +108,13 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('My Parcel')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       await user.click(screen.getByRole('button', { name: /select my parcel/i }))
 
       expect(window.location.search).toContain('position=10,20')
-    }, 15000)
+    })
   })
 
   describe('when user has no assets', () => {
@@ -147,10 +147,10 @@ describe('AssetSelectorPage', () => {
         () => {
           expect(screen.getByText('No worlds found')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       expect(screen.getByText('No lands found')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 })

@@ -110,7 +110,7 @@ describe('player client', () => {
           })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -131,7 +131,7 @@ describe('player client', () => {
           })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -148,7 +148,7 @@ describe('player client', () => {
           await result.current[0]({ ...authParams, address: '0xplayer1' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -165,7 +165,7 @@ describe('player client', () => {
           await result.current[0](authParams)
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })

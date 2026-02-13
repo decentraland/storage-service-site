@@ -46,7 +46,7 @@ describe('env client', () => {
           await result.current[0]({ ...authParams, key: 'NEW_KEY', value: 'new-value' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -62,7 +62,7 @@ describe('env client', () => {
           await result.current[0]({ ...authParams, key: 'API_KEY' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -78,7 +78,7 @@ describe('env client', () => {
           await result.current[0](authParams)
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })

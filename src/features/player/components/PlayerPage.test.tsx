@@ -48,10 +48,10 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
       expect(screen.getByText('progress')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 
   describe('when keys are loaded for an address', () => {
@@ -66,10 +66,10 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
       expect(screen.getByText('progress')).toBeInTheDocument()
-    }, 15000)
+    })
   })
 
   describe('when editing a player value', () => {
@@ -84,7 +84,7 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       const editButton = screen.getByRole('button', { name: /edit inventory/i })
@@ -97,9 +97,9 @@ describe('PlayerPage', () => {
         () => {
           expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
   })
 
   describe('when adding a new player value', () => {
@@ -133,9 +133,9 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         },
-        { timeout: 15000 }
+        { timeout: 12000 }
       )
-    }, 45000)
+    })
   })
 
   describe('when deleting a player value', () => {
@@ -150,7 +150,7 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.getByText('inventory')).toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
 
       const deleteButton = screen.getByRole('button', { name: /delete inventory/i })
@@ -164,9 +164,9 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
-    }, 15000)
+    })
   })
 
   describe('when clearing all players', () => {
@@ -190,7 +190,7 @@ describe('PlayerPage', () => {
         () => {
           expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         },
-        { timeout: 10000 }
+        { timeout: 3000 }
       )
     })
   })
