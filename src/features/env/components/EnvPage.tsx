@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react'
-// eslint-disable-next-line @typescript-eslint/naming-convention
+import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import DeleteIcon from '@mui/icons-material/Delete'
-// eslint-disable-next-line @typescript-eslint/naming-convention
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
+import EditIcon from '@mui/icons-material/Edit'
 import {
   Box,
   Button,
@@ -25,10 +24,89 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
+import { useTranslation } from '@dcl/hooks'
+import { useAuth } from '@/features/auth'
+import { useClearEnvMutation, useDeleteEnvMutation, useGetEnvValueQuery, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
+
+interface EditDialogProps {
+  keyName: string
+  open: boolean
+  onClose: () => void
+  wallet?: string
+  isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
+}
+
+const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
+  const { t } = useTranslation()
+  const { data, isLoading } = useGetEnvValueQuery({ wallet, isSignedIn, realm, position, key: keyName }, { skip: !open || !keyName })
+  const [setEnv] = useSetEnvMutation()
+  const [editValue, setEditValue] = useState('')
+
+  useEffect(() => {
+    if (data?.value !== undefined) {
+      setEditValue(data.value)
+    }
+  }, [data?.value])
+
+  const handleSave = useCallback(async () => {
+    if (editValue.trim()) {
+      await setEnv({ wallet, isSignedIn, realm, position, key: keyName, value: editValue.trim() })
+      onClose()
+    }
+  }, [editValue, keyName, setEnv, wallet, isSignedIn, realm, position, onClose])
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{t('env_page.edit_dialog.title')}</DialogTitle>
+      <DialogContent>
+        {isLoading ? (
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            <TextField
+              margin="dense"
+              label={t('env_page.edit_dialog.key_label')}
+              type="text"
+              fullWidth
+              variant="outlined"
+              value={keyName}
+              disabled
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              autoFocus
+              margin="dense"
+              label={t('env_page.edit_dialog.value_label')}
+              type="text"
+              fullWidth
+              variant="outlined"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+            />
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button onClick={handleSave} variant="contained" disabled={isLoading || !editValue.trim()}>
+          {t('common.save')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
 
 const EnvPage = () => {
-  const { data: envKeys, isLoading, refetch } = useListEnvKeysQuery()
+  const [searchParams] = useSearchParams()
+  const realm = searchParams.get('realm')
+  const position = searchParams.get('position')
+  const { wallet, isSignedIn } = useAuth()
+  const { t } = useTranslation()
+  const { data: envKeys, isLoading } = useListEnvKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [setEnv] = useSetEnvMutation()
   const [deleteEnv] = useDeleteEnvMutation()
   const [clearEnv] = useClearEnvMutation()
@@ -37,7 +115,8 @@ const EnvPage = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
-  const [keyToDelete, setKeyToDelete] = useState<string | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
   // Form state
   const [newKey, setNewKey] = useState('')
@@ -55,30 +134,38 @@ const EnvPage = () => {
 
   const handleSaveEnv = useCallback(async () => {
     if (newKey.trim() && newValue.trim()) {
-      await setEnv({ key: newKey.trim(), value: newValue.trim() })
+      await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() })
       setIsAddDialogOpen(false)
-      refetch()
     }
-  }, [newKey, newValue, setEnv, refetch])
+  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position])
+
+  const handleOpenEditDialog = useCallback((key: string) => {
+    setSelectedKey(key)
+    setIsEditDialogOpen(true)
+  }, [])
+
+  const handleCloseEditDialog = useCallback(() => {
+    setIsEditDialogOpen(false)
+    setSelectedKey(null)
+  }, [])
 
   const handleOpenDeleteDialog = useCallback((key: string) => {
-    setKeyToDelete(key)
+    setSelectedKey(key)
     setIsDeleteDialogOpen(true)
   }, [])
 
   const handleCloseDeleteDialog = useCallback(() => {
     setIsDeleteDialogOpen(false)
-    setKeyToDelete(null)
+    setSelectedKey(null)
   }, [])
 
   const handleConfirmDelete = useCallback(async () => {
-    if (keyToDelete) {
-      await deleteEnv({ key: keyToDelete })
+    if (selectedKey) {
+      await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey })
       setIsDeleteDialogOpen(false)
-      setKeyToDelete(null)
-      refetch()
+      setSelectedKey(null)
     }
-  }, [keyToDelete, deleteEnv, refetch])
+  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position])
 
   const handleOpenClearDialog = useCallback(() => {
     setIsClearDialogOpen(true)
@@ -89,10 +176,9 @@ const EnvPage = () => {
   }, [])
 
   const handleConfirmClear = useCallback(async () => {
-    await clearEnv()
+    await clearEnv({ wallet, isSignedIn, realm, position })
     setIsClearDialogOpen(false)
-    refetch()
-  }, [clearEnv, refetch])
+  }, [clearEnv, wallet, isSignedIn, realm, position])
 
   if (isLoading) {
     return (
@@ -107,14 +193,14 @@ const EnvPage = () => {
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Environment Variables</Typography>
+        <Typography variant="h4">{t('env_page.title')}</Typography>
         <Box>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog} sx={{ mr: 1 }}>
-            Add
+            {t('env_page.add')}
           </Button>
           {hasEnvKeys && (
             <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearDialog}>
-              Clear All
+              {t('env_page.clear_all')}
             </Button>
           )}
         </Box>
@@ -125,8 +211,8 @@ const EnvPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Key</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('common.key')}</TableCell>
+                <TableCell align="right">{t('common.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -134,6 +220,9 @@ const EnvPage = () => {
                 <TableRow key={env.key}>
                   <TableCell>{env.key}</TableCell>
                   <TableCell align="right">
+                    <IconButton aria-label={`edit ${env.key}`} color="primary" onClick={() => handleOpenEditDialog(env.key)}>
+                      <EditIcon />
+                    </IconButton>
                     <IconButton aria-label={`delete ${env.key}`} color="error" onClick={() => handleOpenDeleteDialog(env.key)}>
                       <DeleteIcon />
                     </IconButton>
@@ -145,19 +234,32 @@ const EnvPage = () => {
         </TableContainer>
       ) : (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary">No environment variables found</Typography>
+          <Typography color="text.secondary">{t('env_page.no_keys')}</Typography>
         </Paper>
+      )}
+
+      {/* Edit Dialog */}
+      {selectedKey && (
+        <EditDialog
+          keyName={selectedKey}
+          open={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          wallet={wallet}
+          isSignedIn={isSignedIn}
+          realm={realm}
+          position={position}
+        />
       )}
 
       {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Environment Variable</DialogTitle>
+        <DialogTitle>{t('env_page.add_dialog.title')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             id="env-key"
-            label="Key"
+            label={t('env_page.add_dialog.key_label')}
             type="text"
             fullWidth
             variant="outlined"
@@ -168,7 +270,7 @@ const EnvPage = () => {
           <TextField
             margin="dense"
             id="env-value"
-            label="Value"
+            label={t('env_page.add_dialog.value_label')}
             type="text"
             fullWidth
             variant="outlined"
@@ -177,39 +279,37 @@ const EnvPage = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>Cancel</Button>
+          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleSaveEnv} variant="contained" disabled={!newKey.trim() || !newValue.trim()}>
-            Save
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Delete Environment Variable</DialogTitle>
+        <DialogTitle>{t('env_page.delete_dialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the environment variable &quot;{keyToDelete}&quot;? This action cannot be undone.
-          </DialogContentText>
+          <DialogContentText>{t('env_page.delete_dialog.message', { key: selectedKey ?? '' })}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
+          <Button onClick={handleCloseDeleteDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            Confirm
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Clear All Confirmation Dialog */}
       <Dialog open={isClearDialogOpen} onClose={handleCloseClearDialog}>
-        <DialogTitle>Clear All Environment Variables</DialogTitle>
+        <DialogTitle>{t('env_page.clear_dialog.title')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete ALL environment variables? This action cannot be undone.</DialogContentText>
+          <DialogContentText>{t('env_page.clear_dialog.message')}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseClearDialog}>Cancel</Button>
+          <Button onClick={handleCloseClearDialog}>{t('common.cancel')}</Button>
           <Button onClick={handleConfirmClear} color="error" variant="contained">
-            Confirm
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>

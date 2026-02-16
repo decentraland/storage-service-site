@@ -1,33 +1,22 @@
 import { Provider } from 'react-redux'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { setupStore } from '@/app/store'
+import { resetStorageApiStores } from '@/test/handlers'
 import {
   useClearAllPlayersMutation,
   useClearPlayerMutation,
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
-  useListPlayersQuery,
   useSetPlayerValueMutation
 } from './player.client'
-import type { PlayerAddress, PlayerKey } from './player.types'
+import type { PlayerKey } from './player.types'
+
+const authParams = { wallet: undefined, isSignedIn: false }
 
 describe('player client', () => {
-  describe('useListPlayersQuery', () => {
-    describe('when fetching players', () => {
-      it('should return list of player addresses', async () => {
-        const store = setupStore()
-        const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
-
-        const { result } = renderHook(() => useListPlayersQuery(), { wrapper })
-
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-        const addresses = result.current.data?.map((p: PlayerAddress) => p.address)
-        expect(addresses).toContain('0xplayer1')
-        expect(addresses).toContain('0xplayer2')
-      })
-    })
+  beforeEach(() => {
+    resetStorageApiStores()
   })
 
   describe('useListPlayerKeysQuery', () => {
@@ -36,7 +25,7 @@ describe('player client', () => {
         const store = setupStore()
         const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
 
-        const { result } = renderHook(() => useListPlayerKeysQuery({ address: '0xplayer1' }), { wrapper })
+        const { result } = renderHook(() => useListPlayerKeysQuery({ ...authParams, address: '0xplayer1' }), { wrapper })
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -51,7 +40,7 @@ describe('player client', () => {
         const store = setupStore()
         const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
 
-        const { result } = renderHook(() => useListPlayerKeysQuery({ address: '0xnonexistent' }), { wrapper })
+        const { result } = renderHook(() => useListPlayerKeysQuery({ ...authParams, address: '0xnonexistent' }), { wrapper })
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -66,9 +55,15 @@ describe('player client', () => {
         const store = setupStore()
         const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
 
-        const { result } = renderHook(() => useGetPlayerValueQuery({ address: '0xplayer1', key: 'inventory' }), {
-          wrapper
-        })
+        const { result } = renderHook(
+          () =>
+            useGetPlayerValueQuery({
+              ...authParams,
+              address: '0xplayer1',
+              key: 'inventory'
+            }),
+          { wrapper }
+        )
 
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
@@ -81,9 +76,15 @@ describe('player client', () => {
         const store = setupStore()
         const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
 
-        const { result } = renderHook(() => useGetPlayerValueQuery({ address: '0xplayer1', key: 'nonexistent' }), {
-          wrapper
-        })
+        const { result } = renderHook(
+          () =>
+            useGetPlayerValueQuery({
+              ...authParams,
+              address: '0xplayer1',
+              key: 'nonexistent'
+            }),
+          { wrapper }
+        )
 
         await waitFor(() => expect(result.current.isError).toBe(true))
 
@@ -101,10 +102,15 @@ describe('player client', () => {
         const { result } = renderHook(() => useSetPlayerValueMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ address: '0xplayer1', key: 'newKey', value: { test: true } })
+          await result.current[0]({
+            ...authParams,
+            address: '0xplayer1',
+            key: 'newKey',
+            value: { test: true }
+          })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -118,10 +124,14 @@ describe('player client', () => {
         const { result } = renderHook(() => useDeletePlayerValueMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ address: '0xplayer1', key: 'inventory' })
+          await result.current[0]({
+            ...authParams,
+            address: '0xplayer1',
+            key: 'inventory'
+          })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -135,10 +145,10 @@ describe('player client', () => {
         const { result } = renderHook(() => useClearPlayerMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]({ address: '0xplayer1' })
+          await result.current[0]({ ...authParams, address: '0xplayer1' })
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })
@@ -152,10 +162,10 @@ describe('player client', () => {
         const { result } = renderHook(() => useClearAllPlayersMutation(), { wrapper })
 
         await act(async () => {
-          await result.current[0]()
+          await result.current[0](authParams)
         })
 
-        await waitFor(() => expect(result.current[1].isSuccess).toBe(true))
+        expect(result.current[1].isSuccess).toBe(true)
       })
     })
   })

@@ -35,13 +35,24 @@ interface ClearPlayerParams {
   address: string
 }
 
+interface ListStorageItemsResponse {
+  data: Array<{ key: string; value: unknown }>
+  pagination: { limit: number; offset: number; total: number }
+}
+
+interface StorageValueResponse {
+  value: unknown
+}
+
 export type {
   ClearPlayerParams,
   DeletePlayerValueParams,
   GetPlayerValueParams,
   ListPlayerKeysParams,
+  ListStorageItemsResponse,
   PlayerAddress,
   PlayerKey,
   PlayerValue,
-  SetPlayerValueParams
+  SetPlayerValueParams,
+  StorageValueResponse
 }
