@@ -1,14 +1,7 @@
-import { Box, Typography } from 'decentraland-ui2'
+import { ScenePage } from '@/features/scene'
 
 const Scene = () => {
-  return (
-    <Box>
-      <Typography variant="h4">Scene Storage</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-        Manage scene storage values.
-      </Typography>
-    </Box>
-  )
+  return <ScenePage />
 }
 
 export { Scene }

@@ -4,6 +4,7 @@ import { Box, Container, Footer, Navbar, NavbarPages } from 'decentraland-ui2'
 
 interface LayoutProps {
   children: ReactNode
+  sidebar?: ReactNode
   isSignedIn: boolean
   isSigningIn: boolean
   address?: string
@@ -16,7 +17,17 @@ interface LayoutProps {
   ) => void
 }
 
-const Layout = ({ children, isSignedIn, isSigningIn, address, avatar, onClickSignIn, onClickSignOut, onClickNavbarItem }: LayoutProps) => {
+const Layout = ({
+  children,
+  sidebar,
+  isSignedIn,
+  isSigningIn,
+  address,
+  avatar,
+  onClickSignIn,
+  onClickSignOut,
+  onClickNavbarItem
+}: LayoutProps) => {
   return (
     <Box
       sx={{
@@ -35,17 +46,35 @@ const Layout = ({ children, isSignedIn, isSigningIn, address, avatar, onClickSig
         onClickSignOut={onClickSignOut}
         onClickNavbarItem={onClickNavbarItem}
       />
-      <Container
-        component="main"
-        maxWidth="lg"
-        sx={{
-          flex: 1,
-          pt: 8,
-          pb: 4
-        }}
-      >
-        {children}
-      </Container>
+      {sidebar ? (
+        <Box sx={{ display: 'flex', flex: 1 }}>
+          {sidebar}
+          <Container
+            component="main"
+            maxWidth="lg"
+            sx={{
+              flex: 1,
+              pt: 8,
+              pb: 4,
+              overflow: 'auto'
+            }}
+          >
+            {children}
+          </Container>
+        </Box>
+      ) : (
+        <Container
+          component="main"
+          maxWidth="lg"
+          sx={{
+            flex: 1,
+            pt: 8,
+            pb: 4
+          }}
+        >
+          {children}
+        </Container>
+      )}
       <Footer />
     </Box>
   )

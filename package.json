@@ -5,14 +5,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "start": "vite",
     "prebuild": "node scripts/prebuild.cjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "npm run test -- --coverage",
     "prepare": "husky",
     "precommit": "lint-staged --config .husky/pre-commit.js",
     "format": "prettier --write '**/*.{ts,tsx,js,jsx,json,md,mdx,css}'",
@@ -81,9 +80,14 @@
   "bugs": {
     "url": "https://github.com/decentraland/storage-service-site/issues"
   },
-  "homepage": "https://cdn.decentraland.org/@dcl/storage-service-site/0.0.1",
+  "homepage": "",
   "engines": {
     "node": ">=20",
     "npm": ">=8"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
