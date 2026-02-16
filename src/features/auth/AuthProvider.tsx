@@ -23,7 +23,7 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
   const [wallet, setWallet] = useState<string>()
   const [avatar, setAvatar] = useState<Avatar>()
   const [isSignedIn, setIsSignedIn] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(true)
   const [chainId, setChainId] = useState<ChainId>(config.defaultChainId)
 
   const signIn = useCallback(() => {
@@ -97,7 +97,6 @@ const AuthProvider: FC<AuthProviderProps> = ({ children, config: userConfig }) =
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        setIsConnecting(true)
         debugLog('Checking auth status', undefined, config.debug)
 
         try {

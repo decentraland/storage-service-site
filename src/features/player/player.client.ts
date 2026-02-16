@@ -6,6 +6,7 @@ import type {
   DeletePlayerValueParams,
   GetPlayerValueParams,
   ListPlayerKeysParams,
+  ListPlayersResponse,
   ListStorageItemsResponse,
   PlayerKey,
   PlayerValue,
@@ -22,6 +23,19 @@ const baseUrl = () => config.get('STORAGE_API_URL')
 
 const playerClient = client.injectEndpoints({
   endpoints: build => ({
+    listPlayers: build.query<string[], AuthParams>({
+      queryFn: async ({ wallet, isSignedIn }) => {
+        const signedFetch = createQueryFetch(wallet, isSignedIn)
+        try {
+          const response = await wrapSignedFetch<ListPlayersResponse>(signedFetch, `${baseUrl()}/players`)
+          return { data: response.data }
+        } catch (error) {
+          return { error: error as WrapSignedFetchError }
+        }
+      },
+      serializeQueryArgs: ({ endpointName }) => ({ endpointName }),
+      providesTags: ['Player']
+    }),
     listPlayerKeys: build.query<PlayerKey[], ListPlayerKeysParams & AuthParams>({
       queryFn: async ({ wallet, isSignedIn, address }) => {
         const signedFetch = createQueryFetch(wallet, isSignedIn)
@@ -156,6 +170,7 @@ const {
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
+  useListPlayersQuery,
   useSetPlayerValueMutation
 } = playerClient
 
@@ -166,5 +181,6 @@ export {
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
+  useListPlayersQuery,
   useSetPlayerValueMutation
 }

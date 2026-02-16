@@ -17,7 +17,7 @@ const AppContent = () => {
   const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
   const location = useLocation()
 
-  const isStorageRoute = STORAGE_ROUTES.includes(location.pathname)
+  const isStorageRoute = STORAGE_ROUTES.some(route => location.pathname.startsWith(route))
 
   const handleClickSignIn = useCallback(() => {
     signIn()
@@ -46,7 +46,7 @@ const AppContent = () => {
       isSigningIn={isConnecting}
       address={wallet}
       avatar={avatar}
-      sidebar={isStorageRoute ? <Sidebar /> : undefined}
+      sidebar={isStorageRoute && isSignedIn ? <Sidebar /> : undefined}
       onClickSignIn={handleClickSignIn}
       onClickSignOut={handleClickSignOut}
       onClickNavbarItem={handleClickNavbarItem}

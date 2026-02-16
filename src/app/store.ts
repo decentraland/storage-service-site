@@ -1,8 +1,10 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
+import { profilesReducer } from '@/features/player/player-profiles.slice'
 import { client } from '@/services/client'
 
 const rootReducer = combineReducers({
-  [client.reducerPath]: client.reducer
+  [client.reducerPath]: client.reducer,
+  profiles: profilesReducer
 })
 
 const setupStore = (preloadedState?: Partial<RootState>) => {

@@ -103,7 +103,7 @@ const Sidebar: FC = () => {
 
       <NavList>
         {navItems.map((item, index) => {
-          const isActive = location.pathname === item.route
+          const isActive = item.route === '/select' ? location.pathname === '/select' : location.pathname.startsWith(item.route)
           const isFirstGroup = index === 0
 
           return (
