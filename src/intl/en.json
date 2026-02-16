@@ -35,7 +35,12 @@
     "parcel": "Parcel",
     "estate": "Estate",
     "at_position": "at {position}",
-    "parcels_count": "({size} parcels)"
+    "parcels_count": "({size} parcels)",
+    "search_worlds": "Search worlds\u2026",
+    "search_lands": "Search lands\u2026",
+    "no_search_results": "No results for \"{query}\"",
+    "clear_search": "Clear search",
+    "showing_results": "Showing {start}\u2013{end} of {total}"
   },
   "env_page": {
     "title": "Environment Variables",
