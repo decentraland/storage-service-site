@@ -1,1 +1,148 @@
-{}
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "close": "Close",
+    "loading": "Loading",
+    "actions": "Actions",
+    "key": "Key",
+    "add": "Add",
+    "owner": "Owner",
+    "collaborator": "Collaborator"
+  },
+  "sidebar": {
+    "environment": "Environment",
+    "scene": "Scene",
+    "player": "Player",
+    "storages": "Storages",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "realm": "Realm",
+    "position": "Position"
+  },
+  "select_page": {
+    "title": "Select Asset to Manage",
+    "subtitle": "Choose a world or land parcel to manage its storage.",
+    "worlds": "Worlds",
+    "lands": "Lands",
+    "no_worlds": "No worlds found",
+    "no_lands": "No lands found",
+    "loading": "Loading assets",
+    "select_world": "Select {name}",
+    "select_land": "Select {name}",
+    "parcel": "Parcel",
+    "estate": "Estate",
+    "at_position": "at {position}",
+    "parcels_count": "({size} parcels)"
+  },
+  "env_page": {
+    "title": "Environment Variables",
+    "add": "Add",
+    "clear_all": "Clear All",
+    "no_keys": "No environment variables found",
+    "add_dialog": {
+      "title": "Add Environment Variable",
+      "key_label": "Key",
+      "value_label": "Value"
+    },
+    "edit_dialog": {
+      "title": "Edit Environment Variable",
+      "key_label": "Key",
+      "value_label": "Value"
+    },
+    "delete_dialog": {
+      "title": "Delete Environment Variable",
+      "message": "Are you sure you want to delete the environment variable \"{key}\"? This action cannot be undone."
+    },
+    "clear_dialog": {
+      "title": "Clear All Environment Variables",
+      "message": "Are you sure you want to delete ALL environment variables? This action cannot be undone."
+    }
+  },
+  "scene_page": {
+    "title": "Scene Storage",
+    "add": "Add",
+    "clear_all": "Clear All",
+    "no_keys": "No scene values found",
+    "add_dialog": {
+      "title": "Add Scene Value",
+      "key_label": "Key",
+      "value_label": "Value (JSON)",
+      "value_placeholder": "{\"key\": \"value\"}"
+    },
+    "edit_dialog": {
+      "title": "Edit Value: {key}",
+      "value_label": "Value (JSON)",
+      "json_error": "Invalid JSON"
+    },
+    "delete_dialog": {
+      "title": "Delete Scene Value",
+      "message": "Are you sure you want to delete the scene value \"{key}\"? This action cannot be undone."
+    },
+    "clear_dialog": {
+      "title": "Clear All Scene Values",
+      "message": "Are you sure you want to delete ALL scene values? This action cannot be undone."
+    }
+  },
+  "player_page": {
+    "title": "Player Storage",
+    "add": "Add",
+    "clear_all_players": "Clear All Players",
+    "description": "Enter a player address to view or manage their key-value storage.",
+    "address_label": "Player address",
+    "address_placeholder": "0x...",
+    "load_keys": "Load keys",
+    "keys_for": "Keys for {address}",
+    "clear_this_player": "Clear this player",
+    "no_keys": "No keys found for this player",
+    "loading_keys": "Loading player keys",
+    "add_dialog": {
+      "title": "Add Player Value",
+      "address_label": "Player Address",
+      "key_label": "Key",
+      "value_label": "Value (JSON)",
+      "value_placeholder": "{\"key\": \"value\"}"
+    },
+    "edit_dialog": {
+      "title": "Edit Value: {key}",
+      "subtitle": "Player: {address}",
+      "value_label": "Value (JSON)",
+      "json_error": "Invalid JSON"
+    },
+    "delete_dialog": {
+      "title": "Delete Player Value",
+      "message": "Are you sure you want to delete the value \"{key}\" for player \"{address}\"? This action cannot be undone."
+    },
+    "clear_player_dialog": {
+      "title": "Clear Player Storage",
+      "message": "Are you sure you want to delete ALL values for player \"{address}\"? This action cannot be undone."
+    },
+    "clear_all_dialog": {
+      "title": "Clear All Player Storage",
+      "message": "Are you sure you want to delete ALL player storage data? This action cannot be undone."
+    }
+  },
+  "login_page": {
+    "title": "Sign in required",
+    "subtitle": "Connect your wallet to manage world and player storage.",
+    "sign_in": "Sign in",
+    "connecting": "Connecting\u2026"
+  },
+  "unauthorized_page": {
+    "title": "Access denied",
+    "subtitle": "You do not have permission to manage storage for this world or parcel.",
+    "go_back": "Go back"
+  },
+  "missing_params_page": {
+    "title": "Missing parameters",
+    "subtitle": "Provide at least one URL parameter: {realm} (world name) or {position} (parcel coordinates, e.g. {example})."
+  },
+  "not_found_page": {
+    "code": "404",
+    "title": "Page Not Found",
+    "subtitle": "The page you are looking for does not exist.",
+    "go_home": "Go Home"
+  }
+}

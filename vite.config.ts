@@ -15,10 +15,15 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src')
       }
     },
+    build: {
+      sourcemap: false
+    },
     ...(command === 'build' ? { base: envVariables.VITE_BASE_URL } : undefined),
     test: {
       globals: true,
       environment: 'jsdom',
+      testTimeout: process.env.CI ? 60000 : 30000,
+      pool: 'forks',
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
       coverage: {
@@ -27,16 +32,18 @@ export default defineConfig(({ command, mode }) => {
       },
       server: {
         deps: {
-          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas']
+          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas', 'decentraland-connect']
         }
       }
     },
     server: {
       proxy: {
         '/auth': {
-          target: 'https://decentraland.zone/auth',
+          target: 'https://decentraland.zone',
+          followRedirects: true,
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/auth/, '')
+          secure: false,
+          ws: true
         }
       }
     }

@@ -1,22 +1,31 @@
-import { useCallback } from 'react'
-import { BrowserRouter } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { BrowserRouter, useLocation } from 'react-router-dom'
+import { TranslationProvider } from '@dcl/hooks'
+import { ChainId } from '@dcl/schemas'
 import { Layout } from '@/components/Layout'
+import { Sidebar } from '@/components/Sidebar'
+import { config } from '@/config'
+import { type AuthConfig, AuthProvider, useAuth } from '@/features/auth'
+import en from '@/intl/en.json'
 import { AppRoutes } from '@/routes'
 
-const App = () => {
-  // TODO: These will be replaced with actual auth context in Phase 3
-  const isSignedIn = false
-  const isSigningIn = false
+const translations = { en }
+
+const STORAGE_ROUTES = ['/env', '/scene', '/players']
+
+const AppContent = () => {
+  const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
+  const location = useLocation()
+
+  const isStorageRoute = STORAGE_ROUTES.includes(location.pathname)
 
   const handleClickSignIn = useCallback(() => {
-    // TODO: Implement sign in logic in Phase 3
-    console.log('Sign in clicked')
-  }, [])
+    signIn()
+  }, [signIn])
 
   const handleClickSignOut = useCallback(() => {
-    // TODO: Implement sign out logic in Phase 3
-    console.log('Sign out clicked')
-  }, [])
+    signOut()
+  }, [signOut])
 
   const handleClickNavbarItem = useCallback(
     (_event: React.MouseEvent<HTMLElement, MouseEvent>, options: { url?: string; isExternal?: boolean }) => {
@@ -32,16 +41,38 @@ const App = () => {
   )
 
   return (
+    <Layout
+      isSignedIn={isSignedIn}
+      isSigningIn={isConnecting}
+      address={wallet}
+      avatar={avatar}
+      sidebar={isStorageRoute ? <Sidebar /> : undefined}
+      onClickSignIn={handleClickSignIn}
+      onClickSignOut={handleClickSignOut}
+      onClickNavbarItem={handleClickNavbarItem}
+    >
+      <AppRoutes />
+    </Layout>
+  )
+}
+
+const App = () => {
+  const authConfig: AuthConfig = useMemo(
+    () => ({
+      authUrl: config.get('AUTH_URL'),
+      basePath: '/storage',
+      defaultChainId: ChainId.ETHEREUM_MAINNET
+    }),
+    []
+  )
+
+  return (
     <BrowserRouter>
-      <Layout
-        isSignedIn={isSignedIn}
-        isSigningIn={isSigningIn}
-        onClickSignIn={handleClickSignIn}
-        onClickSignOut={handleClickSignOut}
-        onClickNavbarItem={handleClickNavbarItem}
-      >
-        <AppRoutes />
-      </Layout>
+      <TranslationProvider locale="en" translations={translations}>
+        <AuthProvider config={authConfig}>
+          <AppContent />
+        </AuthProvider>
+      </TranslationProvider>
     </BrowserRouter>
   )
 }

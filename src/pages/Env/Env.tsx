@@ -1,14 +1,7 @@
-import { Box, Typography } from 'decentraland-ui2'
+import { EnvPage } from '@/features/env'
 
 const Env = () => {
-  return (
-    <Box>
-      <Typography variant="h4">Environment Variables</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-        Manage environment variables for your world.
-      </Typography>
-    </Box>
-  )
+  return <EnvPage />
 }
 
 export { Env }

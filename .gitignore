@@ -7,10 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+.env
 node_modules
 dist
 dist-ssr
 *.local
+
+coverage/
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +26,11 @@ dist-ssr
 *.sln
 *.sw?
 *.tsbuildinfo
+
+# AI tool configs
+.agents/
+.claude/
+.cursor/
+
+# MSW auto-generated service worker
+public/mockServiceWorker.js
