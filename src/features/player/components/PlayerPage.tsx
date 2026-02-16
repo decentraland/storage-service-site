@@ -24,8 +24,6 @@ import { usePlayerProfiles } from '../hooks'
 import { useClearAllPlayersMutation, useListPlayersQuery, useSetPlayerValueMutation } from '../player.client'
 import { PlayerCard } from './PlayerCard'
 
-const playerFilterFn = (address: string, query: string): boolean => address.toLowerCase().includes(query)
-
 interface PlayerListViewProps {
   players: string[]
   onSelectPlayer: (address: string) => void
@@ -33,10 +31,22 @@ interface PlayerListViewProps {
 
 const PlayerListView = ({ players, onSelectPlayer }: PlayerListViewProps) => {
   const { t } = useTranslation()
+
+  const { profilesMap, isLoading: profilesLoading } = usePlayerProfiles(players)
+
+  const playerFilterFn = useCallback(
+    (address: string, query: string): boolean => {
+      if (address.toLowerCase().includes(query)) {
+        return true
+      }
+      const profile = profilesMap.get(address.toLowerCase())
+      return profile?.displayName.toLowerCase().includes(query) ?? false
+    },
+    [profilesMap]
+  )
+
   const { search, page, paginatedItems, pageCount, totalFiltered, start, end, handleSearchChange, handleClearSearch, handlePageChange } =
     usePaginatedSearch({ items: players, filterFn: playerFilterFn })
-
-  const { profilesMap, isLoading: profilesLoading } = usePlayerProfiles(paginatedItems)
 
   const handlePlayerClick = useCallback((address: string) => () => onSelectPlayer(address), [onSelectPlayer])
 
