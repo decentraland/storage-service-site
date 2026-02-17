@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
-import { Box, CircularProgress } from 'decentraland-ui2'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import { useAuth } from '@/features/auth'
 import { LoginPage } from '@/pages/Login'
 

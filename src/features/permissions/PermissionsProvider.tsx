@@ -1,5 +1,7 @@
 import type { FC, ReactNode } from 'react'
-import { Box, CircularProgress, Typography } from 'decentraland-ui2'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
+import Typography from '@mui/material/Typography'
 import { useAuth } from '@/features/auth'
 import { UnauthorizedPage } from '@/pages/Unauthorized'
 import { useGetParcelOperatorsQuery, useGetRealmPermissionsQuery } from './permissions.client'
