@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 import { Box, Button, CircularProgress, Grid, Pagination, Typography } from '@mui/material'
@@ -9,6 +9,7 @@ import { SearchField } from '@/components/SearchField'
 import { usePaginatedSearch } from '@/features/assets'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
+import { StorageEvent, useStorageTrack } from '@/lib/analytics'
 import { usePlayerProfiles } from '../hooks'
 import { useClearAllPlayersMutation, useListPlayersQuery, useSetPlayerValueMutation } from '../player.client'
 import { AddValueDialog } from './AddValueDialog'
@@ -82,10 +83,14 @@ const PlayerListView = ({ players, onSelectPlayer }: PlayerListViewProps) => {
 }
 
 const PlayerPage = () => {
+  const [searchParams] = useSearchParams()
+  const realm = searchParams.get('realm')
+  const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const navigate = useNavigate()
-  const { data: players, isLoading: playersLoading } = useListPlayersQuery({ wallet, isSignedIn }, { skip: !wallet })
+  const { data: players, isLoading: playersLoading } = useListPlayersQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [setPlayerValue] = useSetPlayerValueMutation()
   const [clearAllPlayers] = useClearAllPlayersMutation()
 
@@ -101,15 +106,25 @@ const PlayerPage = () => {
 
   const handleSaveValue = useCallback(
     async (address: string, key: string, value: unknown) => {
-      await setPlayerValue({ wallet, isSignedIn, address, key, value })
+      try {
+        await setPlayerValue({ wallet, isSignedIn, realm, position, address, key, value }).unwrap()
+        track(StorageEvent.PLAYER_SET_SUCCESS)
+      } catch {
+        track(StorageEvent.PLAYER_SET_FAILURE)
+      }
     },
-    [setPlayerValue, wallet, isSignedIn]
+    [setPlayerValue, wallet, isSignedIn, realm, position, track]
   )
 
   const handleConfirmClearAll = useCallback(async () => {
-    await clearAllPlayers({ wallet, isSignedIn })
+    try {
+      await clearAllPlayers({ wallet, isSignedIn, realm, position }).unwrap()
+      track(StorageEvent.PLAYER_CLEAR_ALL_SUCCESS)
+    } catch {
+      track(StorageEvent.PLAYER_CLEAR_ALL_FAILURE)
+    }
     clearAllDialog.handleClose()
-  }, [clearAllPlayers, wallet, isSignedIn, clearAllDialog])
+  }, [clearAllPlayers, wallet, isSignedIn, realm, position, clearAllDialog, track])
 
   return (
     <Box p={3}>

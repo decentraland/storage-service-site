@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -26,6 +26,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
+import { StorageEvent, useStorageTrack } from '@/lib/analytics'
 import { usePlayerProfiles } from '../hooks'
 import {
   useClearPlayerMutation,
@@ -43,11 +44,17 @@ interface EditDialogProps {
   onClose: () => void
   wallet?: string
   isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
 }
 
-const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: EditDialogProps) => {
+const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetPlayerValueQuery({ wallet, isSignedIn, address, key: keyName }, { skip: !open || !keyName || !address })
+  const track = useStorageTrack()
+  const { data, isLoading } = useGetPlayerValueQuery(
+    { wallet, isSignedIn, address, key: keyName, realm, position },
+    { skip: !open || !keyName || !address }
+  )
   const [setPlayerValue] = useSetPlayerValueMutation()
   const fieldRef = useRef<StorageValueFieldRef>(null)
   const [isValid, setIsValid] = useState(false)
@@ -56,9 +63,14 @@ const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: Edi
     const parsedValue = fieldRef.current?.getParsedValue() ?? null
     if (parsedValue === null) return
 
-    await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
-    onClose()
-  }, [address, keyName, setPlayerValue, wallet, isSignedIn, onClose])
+    try {
+      await setPlayerValue({ wallet, isSignedIn, realm, position, address, key: keyName, value: parsedValue }).unwrap()
+      track(StorageEvent.PLAYER_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.PLAYER_SET_FAILURE)
+    }
+  }, [address, keyName, setPlayerValue, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -103,14 +115,21 @@ interface PlayerDetailPageProps {
 }
 
 const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
+  const [searchParams] = useSearchParams()
+  const realm = searchParams.get('realm')
+  const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const navigate = useNavigate()
 
   const { profilesMap } = usePlayerProfiles([address])
   const profile = profilesMap.get(address.toLowerCase())
 
-  const { data: playerKeys, isLoading: keysLoading } = useListPlayerKeysQuery({ wallet, isSignedIn, address })
+  const { data: playerKeys, isLoading: keysLoading } = useListPlayerKeysQuery(
+    { wallet, isSignedIn, address, realm, position },
+    { skip: !wallet }
+  )
   const [setPlayerValue] = useSetPlayerValueMutation()
   const [deletePlayerValue] = useDeletePlayerValueMutation()
   const [clearPlayer] = useClearPlayerMutation()
@@ -128,9 +147,14 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
 
   const handleSaveValue = useCallback(
     async (addr: string, key: string, value: unknown) => {
-      await setPlayerValue({ wallet, isSignedIn, address: addr, key, value })
+      try {
+        await setPlayerValue({ wallet, isSignedIn, realm, position, address: addr, key, value }).unwrap()
+        track(StorageEvent.PLAYER_SET_SUCCESS)
+      } catch {
+        track(StorageEvent.PLAYER_SET_FAILURE)
+      }
     },
-    [setPlayerValue, wallet, isSignedIn]
+    [setPlayerValue, wallet, isSignedIn, realm, position, track]
   )
 
   const handleOpenEditDialog = useCallback(
@@ -161,15 +185,25 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
 
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedKey) return
-    await deletePlayerValue({ wallet, isSignedIn, address, key: selectedKey })
+    try {
+      await deletePlayerValue({ wallet, isSignedIn, realm, position, address, key: selectedKey }).unwrap()
+      track(StorageEvent.PLAYER_DELETE_SUCCESS)
+    } catch {
+      track(StorageEvent.PLAYER_DELETE_FAILURE)
+    }
     handleCloseDeleteDialog()
-  }, [selectedKey, deletePlayerValue, wallet, isSignedIn, address, handleCloseDeleteDialog])
+  }, [selectedKey, deletePlayerValue, wallet, isSignedIn, realm, position, address, handleCloseDeleteDialog, track])
 
   const handleConfirmClearPlayer = useCallback(async () => {
-    await clearPlayer({ wallet, isSignedIn, address })
-    clearPlayerDialog.handleClose()
-    navigate(`/players${window.location.search}`)
-  }, [clearPlayer, wallet, isSignedIn, address, clearPlayerDialog, navigate])
+    try {
+      await clearPlayer({ wallet, isSignedIn, realm, position, address }).unwrap()
+      track(StorageEvent.PLAYER_CLEAR_SUCCESS)
+      clearPlayerDialog.handleClose()
+      navigate(`/players${window.location.search}`)
+    } catch {
+      track(StorageEvent.PLAYER_CLEAR_FAILURE)
+    }
+  }, [clearPlayer, wallet, isSignedIn, realm, position, address, clearPlayerDialog, navigate, track])
 
   return (
     <Box p={3}>
@@ -254,6 +288,8 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
           onClose={handleCloseEditDialog}
           wallet={wallet}
           isSignedIn={isSignedIn}
+          realm={realm}
+          position={position}
         />
       )}
 

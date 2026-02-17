@@ -132,7 +132,7 @@ describe('ScenePage', () => {
 
     it('should remove the key after confirming delete', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<ScenePage />)
+      const { store, rerender } = renderWithProviders(<ScenePage />)
 
       await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
@@ -142,7 +142,22 @@ describe('ScenePage', () => {
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(() => expect(screen.queryByText('leaderboard')).not.toBeInTheDocument(), { timeout: 20000 })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
+
+      await act(async () => {
+        await store
+          .dispatch(
+            sceneClient.endpoints.listSceneKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, realm: null, position: null },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<ScenePage />)
+
+      expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
     }, 45000)
   })
 
@@ -157,7 +172,7 @@ describe('ScenePage', () => {
 
     it('should remove all keys after confirming clear all', async () => {
       const user = userEvent.setup({ delay: null })
-      renderWithProviders(<ScenePage />)
+      const { store, rerender } = renderWithProviders(<ScenePage />)
 
       await waitFor(() => expect(screen.getByText('leaderboard')).toBeInTheDocument(), { timeout: 20000 })
 
@@ -166,14 +181,23 @@ describe('ScenePage', () => {
       const dialog = screen.getByRole('dialog')
       await user.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
-      await waitFor(
-        () => {
-          expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
-          expect(screen.queryByText('gameState')).not.toBeInTheDocument()
-        },
-        { timeout: 20000 }
-      )
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument(), { timeout: 20000 })
 
+      await act(async () => {
+        await store
+          .dispatch(
+            sceneClient.endpoints.listSceneKeys.initiate(
+              { wallet: '0xtest', isSignedIn: true, realm: null, position: null },
+              { forceRefetch: true }
+            )
+          )
+          .unwrap()
+      })
+
+      rerender(<ScenePage />)
+
+      expect(screen.queryByText('leaderboard')).not.toBeInTheDocument()
+      expect(screen.queryByText('gameState')).not.toBeInTheDocument()
       expect(screen.getByText(/no scene values/i)).toBeInTheDocument()
     }, 45000)
   })

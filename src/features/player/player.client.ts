@@ -1,5 +1,5 @@
 import { config } from '@/config'
-import { type WrapSignedFetchError, createQueryFetch, wrapSignedFetch } from '@/lib/fetch'
+import { type WrapSignedFetchError, createScopedQueryFetch, wrapSignedFetch } from '@/lib/fetch'
 import { client } from '@/services/client'
 import type {
   ClearPlayerParams,
@@ -19,13 +19,21 @@ interface AuthParams {
   isSignedIn?: boolean
 }
 
+/** Optional realm/position for cache key — storage is scoped per world/parcel */
+interface StorageContext {
+  realm?: string | null
+  position?: string | null
+}
+
+const storageContextId = (realm?: string | null, position?: string | null): string => realm ?? position ?? ''
+
 const baseUrl = () => config.get('STORAGE_API_URL')
 
 const playerClient = client.injectEndpoints({
   endpoints: build => ({
-    listPlayers: build.query<string[], AuthParams>({
-      queryFn: async ({ wallet, isSignedIn }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    listPlayers: build.query<string[], AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<ListPlayersResponse>(signedFetch, `${baseUrl()}/players`)
           return { data: response.data }
@@ -33,12 +41,16 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      serializeQueryArgs: ({ endpointName }) => ({ endpointName }),
-      providesTags: ['Player']
+      serializeQueryArgs: ({ endpointName, queryArgs }) => ({
+        endpointName,
+        storageContext: storageContextId(queryArgs.realm, queryArgs.position)
+      }),
+      providesTags: (_result, _error, { realm, position }) => [{ type: 'Player', id: storageContextId(realm, position) }]
     }),
-    listPlayerKeys: build.query<PlayerKey[], ListPlayerKeysParams & AuthParams>({
-      queryFn: async ({ wallet, isSignedIn, address }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+
+    listPlayerKeys: build.query<PlayerKey[], ListPlayerKeysParams & AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, address, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<ListStorageItemsResponse>(
             signedFetch,
@@ -50,16 +62,20 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      serializeQueryArgs: ({ queryArgs, endpointName }) => ({ endpointName, address: queryArgs.address }),
-      providesTags: (result, _error, { address }) => [
-        { type: 'PlayerKeys', id: address },
-        ...(result?.map(({ key }) => ({ type: 'PlayerKeys' as const, id: `${address}-${key}` })) ?? []) // Individual key tags
+      serializeQueryArgs: ({ queryArgs, endpointName }) => ({
+        endpointName,
+        address: queryArgs.address,
+        storageContext: storageContextId(queryArgs.realm, queryArgs.position)
+      }),
+      providesTags: (result, _error, { address, realm, position }) => [
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}` },
+        ...(result?.map(({ key }) => ({ type: 'PlayerKeys' as const, id: `${storageContextId(realm, position)}-${address}-${key}` })) ?? [])
       ]
     }),
 
-    getPlayerValue: build.query<PlayerValue, GetPlayerValueParams & AuthParams>({
-      queryFn: async ({ wallet, isSignedIn, address, key }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    getPlayerValue: build.query<PlayerValue, GetPlayerValueParams & AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, address, key, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<StorageValueResponse>(
             signedFetch,
@@ -70,12 +86,20 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      providesTags: (_result, _error, { address, key }) => [{ type: 'PlayerKeys', id: `${address}-${key}` }]
+      serializeQueryArgs: ({ queryArgs, endpointName }) => ({
+        endpointName,
+        address: queryArgs.address,
+        key: queryArgs.key,
+        storageContext: storageContextId(queryArgs.realm, queryArgs.position)
+      }),
+      providesTags: (_result, _error, { address, key, realm, position }) => [
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}-${key}` }
+      ]
     }),
 
-    setPlayerValue: build.mutation<PlayerValue, SetPlayerValueParams & AuthParams>({
-      queryFn: async ({ wallet, isSignedIn, address, key, value }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    setPlayerValue: build.mutation<PlayerValue, SetPlayerValueParams & AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, address, key, value, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await wrapSignedFetch<StorageValueResponse>(
             signedFetch,
@@ -91,16 +115,16 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: (_result, _error, { address, key }) => [
-        'Player',
-        { type: 'PlayerKeys', id: `${address}-${key}` },
-        { type: 'PlayerKeys', id: address }
+      invalidatesTags: (_result, _error, { address, key, realm, position }) => [
+        { type: 'Player', id: storageContextId(realm, position) },
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}-${key}` },
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}` }
       ]
     }),
 
-    deletePlayerValue: build.mutation<void, DeletePlayerValueParams & AuthParams>({
-      queryFn: async ({ wallet, isSignedIn, address, key }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    deletePlayerValue: build.mutation<void, DeletePlayerValueParams & AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, address, key, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/players/${encodeURIComponent(address)}/values/${encodeURIComponent(key)}`, {
             method: 'DELETE'
@@ -113,16 +137,16 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: (_result, _error, { address, key }) => [
-        'Player',
-        { type: 'PlayerKeys', id: `${address}-${key}` },
-        { type: 'PlayerKeys', id: address }
+      invalidatesTags: (_result, _error, { address, key, realm, position }) => [
+        { type: 'Player', id: storageContextId(realm, position) },
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}-${key}` },
+        { type: 'PlayerKeys', id: `${storageContextId(realm, position)}-${address}` }
       ]
     }),
 
-    clearPlayer: build.mutation<void, ClearPlayerParams & AuthParams>({
-      queryFn: async ({ wallet, isSignedIn, address }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    clearPlayer: build.mutation<void, ClearPlayerParams & AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, address, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/players/${encodeURIComponent(address)}/values`, {
             method: 'DELETE',
@@ -138,12 +162,12 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: ['Player', 'PlayerKeys']
+      invalidatesTags: (_result, _error, { realm, position }) => [{ type: 'Player', id: storageContextId(realm, position) }, 'PlayerKeys']
     }),
 
-    clearAllPlayers: build.mutation<void, AuthParams>({
-      queryFn: async ({ wallet, isSignedIn }) => {
-        const signedFetch = createQueryFetch(wallet, isSignedIn)
+    clearAllPlayers: build.mutation<void, AuthParams & StorageContext>({
+      queryFn: async ({ wallet, isSignedIn, realm, position }) => {
+        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
         try {
           const response = await signedFetch(`${baseUrl()}/players`, {
             method: 'DELETE',
@@ -159,7 +183,7 @@ const playerClient = client.injectEndpoints({
           return { error: error as WrapSignedFetchError }
         }
       },
-      invalidatesTags: ['Player', 'PlayerKeys']
+      invalidatesTags: (_result, _error, { realm, position }) => [{ type: 'Player', id: storageContextId(realm, position) }, 'PlayerKeys']
     })
   })
 })

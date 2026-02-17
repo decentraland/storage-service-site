@@ -25,6 +25,7 @@ import { useTranslation } from '@dcl/hooks'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
+import { StorageEvent, useStorageTrack } from '@/lib/analytics'
 import { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
 
 interface EditDialogProps {
@@ -39,14 +40,20 @@ interface EditDialogProps {
 
 const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const [setEnv, { isLoading }] = useSetEnvMutation()
   const [editValue, setEditValue] = useState('')
 
   const handleSave = useCallback(async () => {
     if (!editValue.trim()) return
-    await setEnv({ wallet, isSignedIn, realm, position, key: keyName, value: editValue.trim() })
-    onClose()
-  }, [editValue, keyName, setEnv, wallet, isSignedIn, realm, position, onClose])
+    try {
+      await setEnv({ wallet, isSignedIn, realm, position, key: keyName, value: editValue.trim() }).unwrap()
+      track(StorageEvent.ENV_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.ENV_SET_FAILURE)
+    }
+  }, [editValue, keyName, setEnv, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -96,6 +103,7 @@ interface AddEnvDialogProps {
 
 const AddEnvDialog = ({ open, onClose, wallet, isSignedIn, realm, position }: AddEnvDialogProps) => {
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const [setEnv] = useSetEnvMutation()
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
@@ -109,9 +117,14 @@ const AddEnvDialog = ({ open, onClose, wallet, isSignedIn, realm, position }: Ad
 
   const handleSave = useCallback(async () => {
     if (!newKey.trim() || !newValue.trim()) return
-    await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() })
-    onClose()
-  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position, onClose])
+    try {
+      await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() }).unwrap()
+      track(StorageEvent.ENV_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.ENV_SET_FAILURE)
+    }
+  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -156,6 +169,7 @@ const EnvPage = () => {
   const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const { data: envKeys, isLoading } = useListEnvKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [deleteEnv] = useDeleteEnvMutation()
   const [clearEnv] = useClearEnvMutation()
@@ -195,14 +209,24 @@ const EnvPage = () => {
 
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedKey) return
-    await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey })
+    try {
+      await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey }).unwrap()
+      track(StorageEvent.ENV_DELETE_SUCCESS)
+    } catch {
+      track(StorageEvent.ENV_DELETE_FAILURE)
+    }
     handleCloseDeleteDialog()
-  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position, handleCloseDeleteDialog])
+  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position, handleCloseDeleteDialog, track])
 
   const handleConfirmClear = useCallback(async () => {
-    await clearEnv({ wallet, isSignedIn, realm, position })
+    try {
+      await clearEnv({ wallet, isSignedIn, realm, position }).unwrap()
+      track(StorageEvent.ENV_CLEAR_SUCCESS)
+    } catch {
+      track(StorageEvent.ENV_CLEAR_FAILURE)
+    }
     clearDialog.handleClose()
-  }, [clearEnv, wallet, isSignedIn, realm, position, clearDialog])
+  }, [clearEnv, wallet, isSignedIn, realm, position, clearDialog, track])
 
   if (isLoading) {
     return (
