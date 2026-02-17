@@ -1,7 +1,7 @@
 import { config } from '@/config'
 import { type WrapSignedFetchError, createScopedQueryFetch, wrapSignedFetch } from '@/lib/fetch'
 import { client } from '@/services/client'
-import type { DeleteEnvParams, EnvKey, EnvValue, GetEnvValueParams, SetEnvParams } from './env.types'
+import type { DeleteEnvParams, EnvKey, SetEnvParams } from './env.types'
 
 /** OpenAPI ListEnvKeysResponse */
 interface ListEnvKeysResponse {
@@ -42,24 +42,6 @@ const envClient = client.injectEndpoints({
         storageContext: storageContextId(queryArgs.realm, queryArgs.position)
       }),
       providesTags: (_result, _error, { realm, position }) => [{ type: 'Env', id: storageContextId(realm, position) }]
-    }),
-
-    getEnvValue: build.query<EnvValue, GetEnvValueParams & AuthParams & StorageContext>({
-      queryFn: async ({ wallet, isSignedIn, key, realm, position }) => {
-        const signedFetch = createScopedQueryFetch(wallet, isSignedIn, realm, position)
-        try {
-          const response = await wrapSignedFetch<{ value: string }>(signedFetch, `${baseUrl()}/env/${encodeURIComponent(key)}`)
-          return { data: { key, value: response.value } }
-        } catch (error) {
-          return { error: error as WrapSignedFetchError }
-        }
-      },
-      serializeQueryArgs: ({ endpointName, queryArgs }) => ({
-        endpointName,
-        key: queryArgs.key,
-        storageContext: storageContextId(queryArgs.realm, queryArgs.position)
-      }),
-      providesTags: (_result, _error, { key, realm, position }) => [{ type: 'Env', id: `${storageContextId(realm, position)}:${key}` }]
     }),
 
     setEnv: build.mutation<void, SetEnvParams & AuthParams & StorageContext>({
@@ -121,6 +103,6 @@ const envClient = client.injectEndpoints({
   })
 })
 
-const { useClearEnvMutation, useDeleteEnvMutation, useGetEnvValueQuery, useListEnvKeysQuery, useSetEnvMutation } = envClient
+const { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } = envClient
 
-export { envClient, useClearEnvMutation, useDeleteEnvMutation, useGetEnvValueQuery, useListEnvKeysQuery, useSetEnvMutation }
+export { envClient, useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation }

@@ -40,10 +40,6 @@ interface DeleteEnvParams {
   key: string
 }
 
-interface GetEnvValueParams {
-  key: string
-}
-
 interface EnvValue {
   key: string
   value: string
@@ -55,7 +51,6 @@ interface EnvValue {
 | Endpoint      | Hook                   | Method | Description             |
 | ------------- | ---------------------- | ------ | ----------------------- |
 | `listEnvKeys` | `useListEnvKeysQuery`  | GET    | List all env keys       |
-| `getEnvValue` | `useGetEnvValueQuery`  | GET    | Get value for a key     |
 | `setEnv`      | `useSetEnvMutation`    | PUT    | Set env value for a key |
 | `deleteEnv`   | `useDeleteEnvMutation` | DELETE | Delete env value by key |
 | `clearEnv`    | `useClearEnvMutation`  | DELETE | Clear all env variables |
@@ -76,7 +71,7 @@ All mutations invalidate the `Env` tag so the keys list refetches automatically.
 
 - **Loading**: Shows a centered `CircularProgress` while keys are loading.
 - **Table**: Renders key with Edit and Delete actions per row.
-- **Edit**: Per-row edit icon opens a dialog that fetches the current value with `useGetEnvValueQuery` and allows editing; Save calls `setEnv` and refetches.
+- **Edit**: Per-row edit icon opens a dialog and allows editing; Save calls `setEnv` and refetches.
 - **Add**: Button opens a dialog with Key and Value text fields; Save calls `setEnv` and refetches.
 - **Delete**: Per-row delete icon opens a confirmation dialog; Confirm calls `deleteEnv` and refetches.
 - **Clear All**: Button (only when there are keys) opens a confirmation dialog; Confirm calls `clearEnv` and refetches.
@@ -88,7 +83,7 @@ All mutations invalidate the `Env` tag so the keys list refetches automatically.
 ### Hooks
 
 ```typescript
-import { useListEnvKeysQuery, useGetEnvValueQuery, useSetEnvMutation, useDeleteEnvMutation, useClearEnvMutation } from '@/features/env'
+import { useListEnvKeysQuery, useSetEnvMutation, useDeleteEnvMutation, useClearEnvMutation } from '@/features/env'
 
 const MyComponent = () => {
   const { data: envKeys, isLoading, refetch } = useListEnvKeysQuery()

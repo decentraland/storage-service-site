@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -27,7 +27,7 @@ import { useTranslation } from '@dcl/hooks'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
-import { useClearEnvMutation, useDeleteEnvMutation, useGetEnvValueQuery, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
+import { useClearEnvMutation, useDeleteEnvMutation, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
 
 interface EditDialogProps {
   keyName: string
@@ -41,15 +41,8 @@ interface EditDialogProps {
 
 const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetEnvValueQuery({ wallet, isSignedIn, realm, position, key: keyName }, { skip: !open || !keyName })
-  const [setEnv] = useSetEnvMutation()
+  const [setEnv, { isLoading }] = useSetEnvMutation()
   const [editValue, setEditValue] = useState('')
-
-  useEffect(() => {
-    if (data?.value !== undefined) {
-      setEditValue(data.value)
-    }
-  }, [data?.value])
 
   const handleSave = useCallback(async () => {
     if (!editValue.trim()) return
@@ -61,34 +54,28 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, positio
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('env_page.edit_dialog.title')}</DialogTitle>
       <DialogContent>
-        {isLoading ? (
-          <Box display="flex" justifyContent="center" p={3}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            <TextField
-              margin="dense"
-              label={t('env_page.edit_dialog.key_label')}
-              type="text"
-              fullWidth
-              variant="outlined"
-              value={keyName}
-              disabled
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              autoFocus
-              margin="dense"
-              label={t('env_page.edit_dialog.value_label')}
-              type="text"
-              fullWidth
-              variant="outlined"
-              value={editValue}
-              onChange={e => setEditValue(e.target.value)}
-            />
-          </>
-        )}
+        <>
+          <TextField
+            margin="dense"
+            label={t('env_page.edit_dialog.key_label')}
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={keyName}
+            disabled
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            autoFocus
+            margin="dense"
+            label={t('env_page.edit_dialog.value_label')}
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+          />
+        </>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
