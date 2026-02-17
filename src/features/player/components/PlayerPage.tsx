@@ -1,27 +1,17 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Grid,
-  Pagination,
-  TextField,
-  Typography
-} from '@mui/material'
+import { Box, Button, CircularProgress, Grid, Pagination, Typography } from '@mui/material'
 import { useTranslation } from '@dcl/hooks'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SearchField } from '@/components/SearchField'
 import { usePaginatedSearch } from '@/features/assets'
 import { useAuth } from '@/features/auth'
+import { useDialogState } from '@/hooks'
 import { usePlayerProfiles } from '../hooks'
 import { useClearAllPlayersMutation, useListPlayersQuery, useSetPlayerValueMutation } from '../player.client'
+import { AddValueDialog } from './AddValueDialog'
 import { PlayerCard } from './PlayerCard'
 
 interface PlayerListViewProps {
@@ -99,12 +89,8 @@ const PlayerPage = () => {
   const [setPlayerValue] = useSetPlayerValueMutation()
   const [clearAllPlayers] = useClearAllPlayersMutation()
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false)
-
-  const [newAddress, setNewAddress] = useState('')
-  const [newKey, setNewKey] = useState('')
-  const [newValue, setNewValue] = useState('')
+  const addDialog = useDialogState()
+  const clearAllDialog = useDialogState()
 
   const handleSelectPlayer = useCallback(
     (address: string) => {
@@ -113,51 +99,27 @@ const PlayerPage = () => {
     [navigate]
   )
 
-  const handleOpenAddDialog = useCallback(() => {
-    setNewAddress('')
-    setNewKey('')
-    setNewValue('')
-    setIsAddDialogOpen(true)
-  }, [])
-
-  const handleCloseAddDialog = useCallback(() => {
-    setIsAddDialogOpen(false)
-  }, [])
-
-  const handleSaveValue = useCallback(async () => {
-    if (newAddress.trim() && newKey.trim() && newValue.trim()) {
-      try {
-        const parsedValue = JSON.parse(newValue.trim())
-        await setPlayerValue({ wallet, isSignedIn, address: newAddress.trim(), key: newKey.trim(), value: parsedValue })
-        setIsAddDialogOpen(false)
-      } catch {
-        // Invalid JSON
-      }
-    }
-  }, [newAddress, newKey, newValue, setPlayerValue, wallet, isSignedIn])
-
-  const handleOpenClearAllDialog = useCallback(() => {
-    setIsClearAllDialogOpen(true)
-  }, [])
-
-  const handleCloseClearAllDialog = useCallback(() => {
-    setIsClearAllDialogOpen(false)
-  }, [])
+  const handleSaveValue = useCallback(
+    async (address: string, key: string, value: unknown) => {
+      await setPlayerValue({ wallet, isSignedIn, address, key, value })
+    },
+    [setPlayerValue, wallet, isSignedIn]
+  )
 
   const handleConfirmClearAll = useCallback(async () => {
     await clearAllPlayers({ wallet, isSignedIn })
-    setIsClearAllDialogOpen(false)
-  }, [clearAllPlayers, wallet, isSignedIn])
+    clearAllDialog.handleClose()
+  }, [clearAllPlayers, wallet, isSignedIn, clearAllDialog])
 
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('player_page.title')}</Typography>
         <Box>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog} sx={{ mr: 1 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={addDialog.handleOpen} sx={{ mr: 1 }}>
             {t('player_page.add')}
           </Button>
-          <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearAllDialog}>
+          <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={clearAllDialog.handleOpen}>
             {t('player_page.clear_all_players')}
           </Button>
         </Box>
@@ -167,7 +129,6 @@ const PlayerPage = () => {
         {t('player_page.description')}
       </Typography>
 
-      {/* Player list */}
       {playersLoading ? (
         <Box display="flex" justifyContent="center" p={6}>
           <CircularProgress aria-label={t('player_page.loading_players')} />
@@ -176,67 +137,17 @@ const PlayerPage = () => {
         <PlayerListView players={players ?? []} onSelectPlayer={handleSelectPlayer} />
       )}
 
-      <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('player_page.add_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="player-address"
-            label={t('player_page.add_dialog.address_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newAddress}
-            onChange={e => setNewAddress(e.target.value)}
-            placeholder={t('player_page.address_placeholder')}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            id="player-key"
-            label={t('player_page.add_dialog.key_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            id="player-value"
-            label={t('player_page.add_dialog.value_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={4}
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-            placeholder={t('player_page.add_dialog.value_placeholder')}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSaveValue} variant="contained" disabled={!newAddress.trim() || !newKey.trim() || !newValue.trim()}>
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddValueDialog open={addDialog.isOpen} onClose={addDialog.handleClose} onSave={handleSaveValue} />
 
-      <Dialog open={isClearAllDialogOpen} onClose={handleCloseClearAllDialog}>
-        <DialogTitle>{t('player_page.clear_all_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('player_page.clear_all_dialog.message')}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseClearAllDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmClearAll} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={clearAllDialog.isOpen}
+        title={t('player_page.clear_all_dialog.title')}
+        message={t('player_page.clear_all_dialog.message')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmClearAll}
+        onCancel={clearAllDialog.handleClose}
+      />
     </Box>
   )
 }

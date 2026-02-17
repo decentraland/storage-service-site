@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   IconButton,
   Paper,
@@ -25,7 +24,9 @@ import {
   Typography
 } from '@mui/material'
 import { useTranslation } from '@dcl/hooks'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAuth } from '@/features/auth'
+import { useDialogState } from '@/hooks'
 import { useClearEnvMutation, useDeleteEnvMutation, useGetEnvValueQuery, useListEnvKeysQuery, useSetEnvMutation } from '../env.client'
 
 interface EditDialogProps {
@@ -51,10 +52,9 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, positio
   }, [data?.value])
 
   const handleSave = useCallback(async () => {
-    if (editValue.trim()) {
-      await setEnv({ wallet, isSignedIn, realm, position, key: keyName, value: editValue.trim() })
-      onClose()
-    }
+    if (!editValue.trim()) return
+    await setEnv({ wallet, isSignedIn, realm, position, key: keyName, value: editValue.trim() })
+    onClose()
   }, [editValue, keyName, setEnv, wallet, isSignedIn, realm, position, onClose])
 
   return (
@@ -111,74 +111,63 @@ const EnvPage = () => {
   const [deleteEnv] = useDeleteEnvMutation()
   const [clearEnv] = useClearEnvMutation()
 
-  // Dialog states
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const addDialog = useDialogState()
+  const editDialog = useDialogState()
+  const deleteDialog = useDialogState()
+  const clearDialog = useDialogState()
 
-  // Form state
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
 
   const handleOpenAddDialog = useCallback(() => {
     setNewKey('')
     setNewValue('')
-    setIsAddDialogOpen(true)
-  }, [])
-
-  const handleCloseAddDialog = useCallback(() => {
-    setIsAddDialogOpen(false)
-  }, [])
+    addDialog.handleOpen()
+  }, [addDialog])
 
   const handleSaveEnv = useCallback(async () => {
-    if (newKey.trim() && newValue.trim()) {
-      await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() })
-      setIsAddDialogOpen(false)
-    }
-  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position])
+    if (!newKey.trim() || !newValue.trim()) return
+    await setEnv({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: newValue.trim() })
+    addDialog.handleClose()
+  }, [newKey, newValue, setEnv, wallet, isSignedIn, realm, position, addDialog])
 
-  const handleOpenEditDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsEditDialogOpen(true)
-  }, [])
+  const handleOpenEditDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      editDialog.handleOpen()
+    },
+    [editDialog]
+  )
 
   const handleCloseEditDialog = useCallback(() => {
-    setIsEditDialogOpen(false)
+    editDialog.handleClose()
     setSelectedKey(null)
-  }, [])
+  }, [editDialog])
 
-  const handleOpenDeleteDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsDeleteDialogOpen(true)
-  }, [])
+  const handleOpenDeleteDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      deleteDialog.handleOpen()
+    },
+    [deleteDialog]
+  )
 
   const handleCloseDeleteDialog = useCallback(() => {
-    setIsDeleteDialogOpen(false)
+    deleteDialog.handleClose()
     setSelectedKey(null)
-  }, [])
+  }, [deleteDialog])
 
   const handleConfirmDelete = useCallback(async () => {
-    if (selectedKey) {
-      await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey })
-      setIsDeleteDialogOpen(false)
-      setSelectedKey(null)
-    }
-  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position])
-
-  const handleOpenClearDialog = useCallback(() => {
-    setIsClearDialogOpen(true)
-  }, [])
-
-  const handleCloseClearDialog = useCallback(() => {
-    setIsClearDialogOpen(false)
-  }, [])
+    if (!selectedKey) return
+    await deleteEnv({ wallet, isSignedIn, realm, position, key: selectedKey })
+    handleCloseDeleteDialog()
+  }, [selectedKey, deleteEnv, wallet, isSignedIn, realm, position, handleCloseDeleteDialog])
 
   const handleConfirmClear = useCallback(async () => {
     await clearEnv({ wallet, isSignedIn, realm, position })
-    setIsClearDialogOpen(false)
-  }, [clearEnv, wallet, isSignedIn, realm, position])
+    clearDialog.handleClose()
+  }, [clearEnv, wallet, isSignedIn, realm, position, clearDialog])
 
   if (isLoading) {
     return (
@@ -199,7 +188,7 @@ const EnvPage = () => {
             {t('env_page.add')}
           </Button>
           {hasEnvKeys && (
-            <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearDialog}>
+            <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={clearDialog.handleOpen}>
               {t('env_page.clear_all')}
             </Button>
           )}
@@ -238,11 +227,10 @@ const EnvPage = () => {
         </Paper>
       )}
 
-      {/* Edit Dialog */}
       {selectedKey && (
         <EditDialog
           keyName={selectedKey}
-          open={isEditDialogOpen}
+          open={editDialog.isOpen}
           onClose={handleCloseEditDialog}
           wallet={wallet}
           isSignedIn={isSignedIn}
@@ -251,8 +239,7 @@ const EnvPage = () => {
         />
       )}
 
-      {/* Add Dialog */}
-      <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
+      <Dialog open={addDialog.isOpen} onClose={addDialog.handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>{t('env_page.add_dialog.title')}</DialogTitle>
         <DialogContent>
           <TextField
@@ -279,40 +266,32 @@ const EnvPage = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
+          <Button onClick={addDialog.handleClose}>{t('common.cancel')}</Button>
           <Button onClick={handleSaveEnv} variant="contained" disabled={!newKey.trim() || !newValue.trim()}>
             {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>{t('env_page.delete_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('env_page.delete_dialog.message', { key: selectedKey ?? '' })}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title={t('env_page.delete_dialog.title')}
+        message={t('env_page.delete_dialog.message', { key: selectedKey ?? '' })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCloseDeleteDialog}
+      />
 
-      {/* Clear All Confirmation Dialog */}
-      <Dialog open={isClearDialogOpen} onClose={handleCloseClearDialog}>
-        <DialogTitle>{t('env_page.clear_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('env_page.clear_dialog.message')}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseClearDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmClear} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={clearDialog.isOpen}
+        title={t('env_page.clear_dialog.title')}
+        message={t('env_page.clear_dialog.message')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmClear}
+        onCancel={clearDialog.handleClose}
+      />
     </Box>
   )
 }

@@ -12,7 +12,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   IconButton,
   Paper,
@@ -27,7 +26,9 @@ import {
 } from '@mui/material'
 import { useTranslation } from '@dcl/hooks'
 import { Profile } from 'decentraland-ui2'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useAuth } from '@/features/auth'
+import { useDialogState } from '@/hooks'
 import { usePlayerProfiles } from '../hooks'
 import {
   useClearPlayerMutation,
@@ -36,6 +37,7 @@ import {
   useListPlayerKeysQuery,
   useSetPlayerValueMutation
 } from '../player.client'
+import { AddValueDialog } from './AddValueDialog'
 
 interface EditDialogProps {
   address: string
@@ -74,14 +76,13 @@ const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: Edi
   )
 
   const handleSave = useCallback(async () => {
-    if (editValue.trim()) {
-      try {
-        const parsedValue = JSON.parse(editValue.trim())
-        await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
-        onClose()
-      } catch {
-        setJsonError(t('player_page.edit_dialog.json_error'))
-      }
+    if (!editValue.trim()) return
+    try {
+      const parsedValue = JSON.parse(editValue.trim())
+      await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
+      onClose()
+    } catch {
+      setJsonError(t('player_page.edit_dialog.json_error'))
     }
   }, [editValue, address, keyName, setPlayerValue, wallet, isSignedIn, onClose, t])
 
@@ -147,82 +148,61 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
   const [deletePlayerValue] = useDeletePlayerValueMutation()
   const [clearPlayer] = useClearPlayerMutation()
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isClearPlayerDialogOpen, setIsClearPlayerDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedKey, setSelectedKey] = useState<string>('')
+  const addDialog = useDialogState()
+  const deleteDialog = useDialogState()
+  const clearPlayerDialog = useDialogState()
+  const editDialog = useDialogState()
 
-  const [newKey, setNewKey] = useState('')
-  const [newValue, setNewValue] = useState('')
+  const [selectedKey, setSelectedKey] = useState<string>('')
 
   const handleBack = useCallback(() => {
     navigate(`/players${window.location.search}`)
   }, [navigate])
 
-  const handleOpenAddDialog = useCallback(() => {
-    setNewKey('')
-    setNewValue('')
-    setIsAddDialogOpen(true)
-  }, [])
+  const handleSaveValue = useCallback(
+    async (addr: string, key: string, value: unknown) => {
+      await setPlayerValue({ wallet, isSignedIn, address: addr, key, value })
+    },
+    [setPlayerValue, wallet, isSignedIn]
+  )
 
-  const handleCloseAddDialog = useCallback(() => {
-    setIsAddDialogOpen(false)
-  }, [])
-
-  const handleSaveValue = useCallback(async () => {
-    if (newKey.trim() && newValue.trim()) {
-      try {
-        const parsedValue = JSON.parse(newValue.trim())
-        await setPlayerValue({ wallet, isSignedIn, address, key: newKey.trim(), value: parsedValue })
-        setIsAddDialogOpen(false)
-      } catch {
-        // Invalid JSON
-      }
-    }
-  }, [newKey, newValue, setPlayerValue, wallet, isSignedIn, address])
-
-  const handleOpenEditDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsEditDialogOpen(true)
-  }, [])
+  const handleOpenEditDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      editDialog.handleOpen()
+    },
+    [editDialog]
+  )
 
   const handleCloseEditDialog = useCallback(() => {
-    setIsEditDialogOpen(false)
+    editDialog.handleClose()
     setSelectedKey('')
-  }, [])
+  }, [editDialog])
 
-  const handleOpenDeleteDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsDeleteDialogOpen(true)
-  }, [])
+  const handleOpenDeleteDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      deleteDialog.handleOpen()
+    },
+    [deleteDialog]
+  )
 
   const handleCloseDeleteDialog = useCallback(() => {
-    setIsDeleteDialogOpen(false)
+    deleteDialog.handleClose()
     setSelectedKey('')
-  }, [])
+  }, [deleteDialog])
 
   const handleConfirmDelete = useCallback(async () => {
-    if (selectedKey) {
-      await deletePlayerValue({ wallet, isSignedIn, address, key: selectedKey })
-      setIsDeleteDialogOpen(false)
-      setSelectedKey('')
-    }
-  }, [selectedKey, deletePlayerValue, wallet, isSignedIn, address])
-
-  const handleOpenClearPlayerDialog = useCallback(() => {
-    setIsClearPlayerDialogOpen(true)
-  }, [])
-
-  const handleCloseClearPlayerDialog = useCallback(() => {
-    setIsClearPlayerDialogOpen(false)
-  }, [])
+    if (!selectedKey) return
+    await deletePlayerValue({ wallet, isSignedIn, address, key: selectedKey })
+    handleCloseDeleteDialog()
+  }, [selectedKey, deletePlayerValue, wallet, isSignedIn, address, handleCloseDeleteDialog])
 
   const handleConfirmClearPlayer = useCallback(async () => {
     await clearPlayer({ wallet, isSignedIn, address })
-    setIsClearPlayerDialogOpen(false)
+    clearPlayerDialog.handleClose()
     navigate(`/players${window.location.search}`)
-  }, [clearPlayer, wallet, isSignedIn, address, navigate])
+  }, [clearPlayer, wallet, isSignedIn, address, clearPlayerDialog, navigate])
 
   return (
     <Box p={3}>
@@ -238,7 +218,7 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Profile
             address={address}
-            avatar={profile?.avatar ?? undefined}
+            avatar={profile?.avatar}
             showBothNameAndAddress
             shortenAddress
             showCopyButton
@@ -247,14 +227,14 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
           />
 
           <Box display="flex" gap={1}>
-            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={handleOpenAddDialog}>
+            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={addDialog.handleOpen}>
               {t('player_page.add')}
             </Button>
             <Button
               size="small"
               color="error"
               variant="outlined"
-              onClick={handleOpenClearPlayerDialog}
+              onClick={clearPlayerDialog.handleOpen}
               aria-label={`clear storage for ${address}`}
             >
               {t('player_page.clear_this_player')}
@@ -303,86 +283,34 @@ const PlayerDetailPage = ({ address }: PlayerDetailPageProps) => {
         <EditDialog
           address={address}
           keyName={selectedKey}
-          open={isEditDialogOpen}
+          open={editDialog.isOpen}
           onClose={handleCloseEditDialog}
           wallet={wallet}
           isSignedIn={isSignedIn}
         />
       )}
 
-      <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('player_page.add_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="dense"
-            id="player-address"
-            label={t('player_page.add_dialog.address_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={address}
-            disabled
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            autoFocus
-            margin="dense"
-            id="player-key"
-            label={t('player_page.add_dialog.key_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            id="player-value"
-            label={t('player_page.add_dialog.value_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={4}
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-            placeholder={t('player_page.add_dialog.value_placeholder')}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSaveValue} variant="contained" disabled={!newKey.trim() || !newValue.trim()}>
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddValueDialog open={addDialog.isOpen} onClose={addDialog.handleClose} onSave={handleSaveValue} address={address} />
 
-      <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>{t('player_page.delete_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('player_page.delete_dialog.message', { key: selectedKey, address })}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title={t('player_page.delete_dialog.title')}
+        message={t('player_page.delete_dialog.message', { key: selectedKey, address })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCloseDeleteDialog}
+      />
 
-      <Dialog open={isClearPlayerDialogOpen} onClose={handleCloseClearPlayerDialog}>
-        <DialogTitle>{t('player_page.clear_player_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('player_page.clear_player_dialog.message', { address })}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseClearPlayerDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmClearPlayer} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={clearPlayerDialog.isOpen}
+        title={t('player_page.clear_player_dialog.title')}
+        message={t('player_page.clear_player_dialog.message', { address })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmClearPlayer}
+        onCancel={clearPlayerDialog.handleClose}
+      />
     </Box>
   )
 }

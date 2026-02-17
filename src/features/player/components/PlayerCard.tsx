@@ -27,7 +27,7 @@ const PlayerCardComponent: FC<PlayerCardProps> = ({ address, profile, profileLoa
               <Skeleton width="60%" height={24} />
             </Box>
           ) : (
-            <Profile address={address} avatar={profile?.avatar ?? undefined} showBothNameAndAddress shortenAddress rounded size="normal" />
+            <Profile address={address} avatar={profile?.avatar} showBothNameAndAddress shortenAddress rounded size="normal" />
           )}
         </CardContent>
       </CardActionArea>
