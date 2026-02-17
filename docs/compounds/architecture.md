@@ -21,21 +21,17 @@ Storage Service UI - A Decentraland dApp for managing World and Player storage (
 
 ## Data Fetching
 
-RTK Query is used for all server state. See [rtk-query.md](rtk-query.md) for signed vs non-signed request patterns, wrappers (`createQueryFetch`, `wrapSignedFetch`), and which feature clients use each pattern.
+RTK Query is used for all server state. See [rtk-query.md](rtk-query.md) for signed vs non-signed request patterns, wrappers (`createQueryFetch`, `createScopedQueryFetch`, `wrapSignedFetch`), and which feature clients use each pattern.
 
 ## Provider Hierarchy
 
 ```
 <BrowserRouter>
-  <AuthProvider config={authConfig}>
-    <Provider store={store}>        {/* Redux - for RTK Query */}
-      <DclThemeProvider theme={darkTheme}>
-        <Layout>
-          <AppRoutes />
-        </Layout>
-      </DclThemeProvider>
-    </Provider>
-  </AuthProvider>
+  <TranslationProvider locale="en" translations={translations}>
+    <AuthProvider config={authConfig}>
+      <AppContent />                {/* Layout + AppRoutes; Redux Provider is inside features */}
+    </AuthProvider>
+  </TranslationProvider>
 </BrowserRouter>
 ```
 
@@ -43,24 +39,24 @@ RTK Query is used for all server state. See [rtk-query.md](rtk-query.md) for sig
 
 ```
 src/
+├── App.tsx                 # App root: providers, AppContent (Layout + Sidebar + Routes)
+│
 ├── app/                    # App-wide setup
 │   ├── store.ts            # Redux store configuration
 │   └── hooks.ts            # Typed Redux hooks
 │
 ├── components/             # Shared/reusable components
-│   ├── Layout/             # Shell layout (Navbar, Footer)
-│   ├── StorageDrawer/      # Collapsible persistent/mini Drawer (storage nav)
-│   ├── StorageLayout/      # StorageDrawer + content area wrapper
-│   ├── WorldStoragePanel/
-│   ├── PlayerStoragePanel/
-│   ├── StorageForm/
-│   └── ConfirmDialog/
+│   ├── Layout/             # Shell layout (Navbar, optional sidebar, Footer)
+│   ├── Sidebar/            # Collapsible persistent/mini Drawer (storage nav)
+│   │   ├── Sidebar.tsx
+│   │   └── Sidebar.styled.ts
+│   ├── StorageForm/        # Reusable key + value form
+│   └── ConfirmDialog/      # Reusable confirmation dialog
 │
 ├── config/                 # Environment configuration
 │   ├── index.ts            # Config factory (@dcl/ui-env)
 │   └── env/                # Per-environment JSON files
 │       ├── dev.json
-│       ├── stg.json
 │       └── prd.json
 │
 ├── features/               # Feature modules (self-contained)
@@ -81,21 +77,18 @@ src/
 │   └── player/             # Player storage feature
 │
 ├── lib/                    # Utilities and helpers
-│   └── fetch.ts            # createQueryFetch, wrapSignedFetch
-├── utils/
-│   └── storage-api.ts      # World/player storage API (signed fetch)
+│   └── fetch.ts            # createQueryFetch, createScopedQueryFetch, wrapSignedFetch
 │
-├── pages/                  # Route page components
-│   ├── Home/
+├── pages/                  # Route page components (thin wrappers around feature pages)
+│   ├── Home/               # Home page (not in current route tree)
 │   ├── Select/             # SelectPage (asset selector)
-│   ├── Storage/            # StorageGate, StoragePage (not in current route tree)
-│   ├── Login/
-│   ├── Unauthorized/
-│   ├── MissingParams/
-│   ├── Env/
-│   ├── Scene/
-│   ├── Players/
-│   └── NotFound/
+│   ├── Env/                # Env page wrapper → EnvPage
+│   ├── Scene/              # Scene page wrapper → ScenePage
+│   ├── Players/            # Players page wrapper → PlayerPage
+│   ├── Login/              # LoginPage (sign-in CTA)
+│   ├── Unauthorized/       # UnauthorizedPage (access denied)
+│   ├── MissingParams/      # MissingParamsPage (missing realm/position)
+│   └── NotFound/           # 404 fallback
 │
 ├── routes/                 # Route definitions
 │   └── routes.tsx
@@ -120,6 +113,7 @@ Each feature is self-contained with:
 - `index.ts` - Public exports (barrel file)
 - `*.types.ts` - TypeScript interfaces
 - `*.utils.ts` - Pure utility functions
+- `*.client.ts` - RTK Query endpoints (injected via `client.injectEndpoints`)
 - Component files (`.tsx`)
 - Test files (`.test.ts`, `.test.tsx`)
 
@@ -143,11 +137,10 @@ import { config } from '@/config'
 const authUrl = config.get('AUTH_URL')
 ```
 
-| Environment | AUTH_URL                         |
-| ----------- | -------------------------------- |
-| Development | `/auth` (proxied)                |
-| Staging     | `https://decentraland.zone/auth` |
-| Production  | `https://decentraland.org/auth`  |
+| Environment | AUTH_URL                        |
+| ----------- | ------------------------------- |
+| Development | `/auth` (proxied)               |
+| Production  | `https://decentraland.org/auth` |
 
 ## Vite Proxy (Development)
 
@@ -179,7 +172,7 @@ server: {
 
 **RootRedirect** (`src/routes/routes.tsx`): Reads `realm` and `position` from URL. If both missing, navigates to `/select`. If either present, navigates to `/env` preserving search params so Env/Scene/Players can use the same context.
 
-**StorageLayout** wraps `/env`, `/scene`, and `/players` routes. It renders a **StorageDrawer** (collapsible sidebar with nav links) alongside the active page content via `<Outlet />`.
+**Layout + Sidebar**: The `Layout` component accepts an optional `sidebar` prop. `AppContent` in `App.tsx` conditionally passes `<Sidebar />` on storage routes (`/env`, `/scene`, `/players`). The Sidebar is a collapsible persistent/mini Drawer with nav links to storage pages and the asset selector.
 
 ## i18n
 
@@ -187,11 +180,11 @@ All user-facing strings use `useTranslation()` from `@dcl/hooks`. The `Translati
 
 ## Roadmap (Phases)
 
-| Phase   | Scope                                                                                                                                                                                                                                        | Status   |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **4.1** | Storage UI with features pattern: auth + permissions (realm/position), Login/Unauthorized/MissingParams pages, StorageGate/StoragePage with WorldStoragePanel and PlayerStoragePanel (signed fetch, storage-api, ConfirmDialog, StorageForm) | Done     |
-| 4.2+    | Refinements and extensions to storage UI (e.g. Alert/Snackbar feedback, UX polish)                                                                                                                                                           | Planned  |
-| **5**   | Asset selector when no realm/position: user picks world or parcel from owned/operated lands and worlds                                                                                                                                       | **Done** |
+| Phase   | Scope                                                                                                                                                                      | Status   |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **4.1** | Storage UI with features pattern: auth + permissions (realm/position), Login/Unauthorized/MissingParams pages, storage features (signed fetch, ConfirmDialog, StorageForm) | Done     |
+| 4.2+    | Refinements and extensions to storage UI (e.g. Alert/Snackbar feedback, UX polish)                                                                                         | Planned  |
+| **5**   | Asset selector when no realm/position: user picks world or parcel from owned/operated lands and worlds                                                                     | **Done** |
 
 All storage UI work follows the **features pattern**: auth, permissions, assets, env, scene, and player live under `src/features/` (barrel exports, types, utils, tests).
 
