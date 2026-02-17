@@ -67,7 +67,7 @@ describe('ScenePage', () => {
       const dialog = screen.getByRole('dialog')
       expect(dialog).toBeInTheDocument()
 
-      await waitFor(() => expect(within(dialog).getByLabelText(/value \(json\)/i)).toBeInTheDocument(), { timeout: 20000 })
+      await waitFor(() => expect(within(dialog).getByLabelText(/value/i)).toBeInTheDocument(), { timeout: 20000 })
     }, 45000)
   })
 
@@ -100,7 +100,7 @@ describe('ScenePage', () => {
       const dialog = screen.getByRole('dialog')
       await user.type(within(dialog).getByLabelText(/key/i), 'newKey')
       // Use a simpler JSON value without special characters that might be escaped
-      await user.type(within(dialog).getByLabelText(/value \(json\)/i), '123')
+      await user.type(within(dialog).getByLabelText(/value/i), '123')
 
       // Submit
       await user.click(within(dialog).getByRole('button', { name: /save/i }))

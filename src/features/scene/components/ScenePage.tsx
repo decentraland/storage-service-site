@@ -1,30 +1,28 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 import EditIcon from '@mui/icons-material/Edit'
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography
-} from '@mui/material'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import IconButton from '@mui/material/IconButton'
+import Paper from '@mui/material/Paper'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
 import {
@@ -47,39 +45,16 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
   const { t } = useTranslation()
   const { data, isLoading } = useGetSceneValueQuery({ wallet, isSignedIn, key: keyName }, { skip: !open || !keyName })
   const [setSceneValue] = useSetSceneValueMutation()
-  const [editValue, setEditValue] = useState('')
-  const [jsonError, setJsonError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (data?.value !== undefined) {
-      setEditValue(JSON.stringify(data.value, null, 2))
-      setJsonError(null)
-    }
-  }, [data?.value])
-
-  const handleValueChange = useCallback(
-    (value: string) => {
-      setEditValue(value)
-      try {
-        JSON.parse(value)
-        setJsonError(null)
-      } catch {
-        setJsonError(t('scene_page.edit_dialog.json_error'))
-      }
-    },
-    [t]
-  )
+  const fieldRef = useRef<StorageValueFieldRef>(null)
+  const [isValid, setIsValid] = useState(false)
 
   const handleSave = useCallback(async () => {
-    if (!editValue.trim()) return
-    try {
-      const parsedValue = JSON.parse(editValue.trim())
-      await setSceneValue({ wallet, isSignedIn, key: keyName, value: parsedValue })
-      onClose()
-    } catch {
-      setJsonError(t('scene_page.edit_dialog.json_error'))
-    }
-  }, [editValue, keyName, setSceneValue, wallet, isSignedIn, onClose, t])
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    await setSceneValue({ wallet, isSignedIn, key: keyName, value: parsedValue })
+    onClose()
+  }, [keyName, setSceneValue, wallet, isSignedIn, onClose])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -90,32 +65,97 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
             <CircularProgress />
           </Box>
         ) : (
-          <>
-            <TextField
-              autoFocus
-              margin="dense"
-              label={t('scene_page.edit_dialog.value_label')}
-              fullWidth
-              variant="outlined"
-              multiline
-              rows={12}
-              value={editValue}
-              onChange={e => handleValueChange(e.target.value)}
-              error={!!jsonError}
-              sx={{ fontFamily: 'monospace' }}
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-            />
-            {jsonError && (
-              <Alert severity="error" sx={{ mt: 1 }}>
-                {jsonError}
-              </Alert>
-            )}
-          </>
+          <StorageValueField
+            ref={fieldRef}
+            defaultValue={data?.value}
+            onChange={e => setIsValid(e.isValid)}
+            autoFocus
+            margin="dense"
+            label={t('scene_page.edit_dialog.value_label')}
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={12}
+            sx={{ fontFamily: 'monospace' }}
+            inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+          />
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" disabled={isLoading || !!jsonError || !editValue.trim()}>
+        <Button onClick={handleSave} variant="contained" disabled={isLoading || !isValid}>
+          {t('common.save')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+interface AddSceneValueDialogProps {
+  open: boolean
+  onClose: () => void
+  wallet?: string
+  isSignedIn?: boolean
+}
+
+const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn }: AddSceneValueDialogProps) => {
+  const { t } = useTranslation()
+  const [setSceneValue] = useSetSceneValueMutation()
+  const [newKey, setNewKey] = useState('')
+  const [isValueValid, setIsValueValid] = useState(false)
+  const fieldRef = useRef<StorageValueFieldRef>(null)
+
+  useEffect(() => {
+    if (open) {
+      setNewKey('')
+      setIsValueValid(false)
+      fieldRef.current?.reset()
+    }
+  }, [open])
+
+  const handleSave = useCallback(async () => {
+    if (!newKey.trim()) return
+
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    await setSceneValue({ wallet, isSignedIn, key: newKey.trim(), value: parsedValue })
+    onClose()
+  }, [newKey, setSceneValue, wallet, isSignedIn, onClose])
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{t('scene_page.add_dialog.title')}</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          margin="dense"
+          id="scene-key"
+          label={t('scene_page.add_dialog.key_label')}
+          type="text"
+          fullWidth
+          variant="outlined"
+          value={newKey}
+          onChange={e => setNewKey(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <StorageValueField
+          ref={fieldRef}
+          onChange={e => setIsValueValid(e.isValid)}
+          margin="dense"
+          id="scene-value"
+          label={t('scene_page.add_dialog.value_label')}
+          type="text"
+          fullWidth
+          variant="outlined"
+          multiline
+          rows={4}
+          placeholder={t('scene_page.add_dialog.value_placeholder')}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button onClick={handleSave} variant="contained" disabled={!newKey.trim() || !isValueValid}>
           {t('common.save')}
         </Button>
       </DialogActions>
@@ -127,7 +167,6 @@ const ScenePage = () => {
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
   const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn }, { skip: !wallet })
-  const [setSceneValue] = useSetSceneValueMutation()
   const [deleteSceneValue] = useDeleteSceneValueMutation()
   const [clearScene] = useClearSceneMutation()
 
@@ -137,25 +176,6 @@ const ScenePage = () => {
   const clearDialog = useDialogState()
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const [newKey, setNewKey] = useState('')
-  const [newValue, setNewValue] = useState('')
-
-  const handleOpenAddDialog = useCallback(() => {
-    setNewKey('')
-    setNewValue('')
-    addDialog.handleOpen()
-  }, [addDialog])
-
-  const handleSaveValue = useCallback(async () => {
-    if (!newKey.trim() || !newValue.trim()) return
-    try {
-      const parsedValue = JSON.parse(newValue.trim())
-      await setSceneValue({ wallet, isSignedIn, key: newKey.trim(), value: parsedValue })
-      addDialog.handleClose()
-    } catch {
-      // Invalid JSON
-    }
-  }, [newKey, newValue, setSceneValue, wallet, isSignedIn, addDialog])
 
   const handleOpenEditDialog = useCallback(
     (key: string) => {
@@ -209,7 +229,7 @@ const ScenePage = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('scene_page.title')}</Typography>
         <Box>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog} sx={{ mr: 1 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={addDialog.handleOpen} sx={{ mr: 1 }}>
             {t('scene_page.add')}
           </Button>
           {hasSceneKeys && (
@@ -262,42 +282,7 @@ const ScenePage = () => {
         />
       )}
 
-      <Dialog open={addDialog.isOpen} onClose={addDialog.handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('scene_page.add_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="scene-key"
-            label={t('scene_page.add_dialog.key_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            id="scene-value"
-            label={t('scene_page.add_dialog.value_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={4}
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-            placeholder={t('scene_page.add_dialog.value_placeholder')}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={addDialog.handleClose}>{t('common.cancel')}</Button>
-          <Button onClick={handleSaveValue} variant="contained" disabled={!newKey.trim() || !newValue.trim()}>
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddSceneValueDialog open={addDialog.isOpen} onClose={addDialog.handleClose} wallet={wallet} isSignedIn={isSignedIn} />
 
       <ConfirmDialog
         open={deleteDialog.isOpen}

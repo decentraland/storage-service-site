@@ -1,32 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography
-} from '@mui/material'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import IconButton from '@mui/material/IconButton'
+import Paper from '@mui/material/Paper'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
 import { Profile } from 'decentraland-ui2'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
 import { usePlayerProfiles } from '../hooks'
@@ -52,39 +49,16 @@ const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: Edi
   const { t } = useTranslation()
   const { data, isLoading } = useGetPlayerValueQuery({ wallet, isSignedIn, address, key: keyName }, { skip: !open || !keyName || !address })
   const [setPlayerValue] = useSetPlayerValueMutation()
-  const [editValue, setEditValue] = useState('')
-  const [jsonError, setJsonError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (data?.value !== undefined) {
-      setEditValue(JSON.stringify(data.value, null, 2))
-      setJsonError(null)
-    }
-  }, [data?.value])
-
-  const handleValueChange = useCallback(
-    (value: string) => {
-      setEditValue(value)
-      try {
-        JSON.parse(value)
-        setJsonError(null)
-      } catch {
-        setJsonError(t('player_page.edit_dialog.json_error'))
-      }
-    },
-    [t]
-  )
+  const fieldRef = useRef<StorageValueFieldRef>(null)
+  const [isValid, setIsValid] = useState(false)
 
   const handleSave = useCallback(async () => {
-    if (!editValue.trim()) return
-    try {
-      const parsedValue = JSON.parse(editValue.trim())
-      await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
-      onClose()
-    } catch {
-      setJsonError(t('player_page.edit_dialog.json_error'))
-    }
-  }, [editValue, address, keyName, setPlayerValue, wallet, isSignedIn, onClose, t])
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    await setPlayerValue({ wallet, isSignedIn, address, key: keyName, value: parsedValue })
+    onClose()
+  }, [address, keyName, setPlayerValue, wallet, isSignedIn, onClose])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -98,32 +72,25 @@ const EditDialog = ({ address, keyName, open, onClose, wallet, isSignedIn }: Edi
             <CircularProgress />
           </Box>
         ) : (
-          <>
-            <TextField
-              autoFocus
-              margin="dense"
-              label={t('player_page.edit_dialog.value_label')}
-              fullWidth
-              variant="outlined"
-              multiline
-              rows={12}
-              value={editValue}
-              onChange={e => handleValueChange(e.target.value)}
-              error={!!jsonError}
-              sx={{ fontFamily: 'monospace' }}
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-            />
-            {jsonError && (
-              <Alert severity="error" sx={{ mt: 1 }}>
-                {jsonError}
-              </Alert>
-            )}
-          </>
+          <StorageValueField
+            ref={fieldRef}
+            defaultValue={data?.value}
+            onChange={e => setIsValid(e.isValid)}
+            autoFocus
+            margin="dense"
+            label={t('player_page.edit_dialog.value_label')}
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={12}
+            sx={{ fontFamily: 'monospace' }}
+            inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+          />
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" disabled={isLoading || !!jsonError || !editValue.trim()}>
+        <Button onClick={handleSave} variant="contained" disabled={isLoading || !isValid}>
           {t('common.save')}
         </Button>
       </DialogActions>

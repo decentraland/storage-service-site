@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FC } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import Button from '@mui/material/Button'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import TextField from '@mui/material/TextField'
 import { useTranslation } from '@dcl/hooks'
+import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 
 interface AddValueDialogProps {
   open: boolean
@@ -15,36 +21,33 @@ const AddValueDialog: FC<AddValueDialogProps> = ({ open, onClose, onSave, addres
   const { t } = useTranslation()
   const [address, setAddress] = useState('')
   const [key, setKey] = useState('')
-  const [value, setValue] = useState('')
+  const [isValueValid, setIsValueValid] = useState(false)
+  const fieldRef = useRef<StorageValueFieldRef>(null)
 
   useEffect(() => {
     if (open) {
       setAddress(fixedAddress ?? '')
       setKey('')
-      setValue('')
+      setIsValueValid(false)
+      fieldRef.current?.reset()
     }
   }, [open, fixedAddress])
 
   const handleSave = useCallback(async () => {
     const trimmedAddress = (fixedAddress ?? address).trim()
     const trimmedKey = key.trim()
-    const trimmedValue = value.trim()
 
-    if (!trimmedAddress || !trimmedKey || !trimmedValue) {
-      return
-    }
+    if (!trimmedAddress || !trimmedKey) return
 
-    try {
-      const parsedValue = JSON.parse(trimmedValue)
-      await onSave(trimmedAddress, trimmedKey, parsedValue)
-      onClose()
-    } catch {
-      // Invalid JSON -- could show error to user
-    }
-  }, [fixedAddress, address, key, value, onSave, onClose])
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    await onSave(trimmedAddress, trimmedKey, parsedValue)
+    onClose()
+  }, [fixedAddress, address, key, onSave, onClose])
 
   const isAddressFixed = fixedAddress !== undefined
-  const isSaveDisabled = isAddressFixed ? !key.trim() || !value.trim() : !address.trim() || !key.trim() || !value.trim()
+  const isSaveDisabled = !isValueValid || !key.trim() || (!isAddressFixed && !address.trim())
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -76,7 +79,9 @@ const AddValueDialog: FC<AddValueDialogProps> = ({ open, onClose, onSave, addres
           onChange={e => setKey(e.target.value)}
           sx={{ mb: 2 }}
         />
-        <TextField
+        <StorageValueField
+          ref={fieldRef}
+          onChange={e => setIsValueValid(e.isValid)}
           margin="dense"
           id="player-value"
           label={t('player_page.add_dialog.value_label')}
@@ -85,8 +90,6 @@ const AddValueDialog: FC<AddValueDialogProps> = ({ open, onClose, onSave, addres
           variant="outlined"
           multiline
           rows={4}
-          value={value}
-          onChange={e => setValue(e.target.value)}
           placeholder={t('player_page.add_dialog.value_placeholder')}
         />
       </DialogContent>
