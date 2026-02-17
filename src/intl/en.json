@@ -12,6 +12,9 @@
     "owner": "Owner",
     "collaborator": "Collaborator"
   },
+  "value_field": {
+    "json_error": "Invalid JSON"
+  },
   "sidebar": {
     "environment": "Environment",
     "scene": "Scene",
@@ -74,13 +77,12 @@
     "add_dialog": {
       "title": "Add Scene Value",
       "key_label": "Key",
-      "value_label": "Value (JSON)",
-      "value_placeholder": "{\"key\": \"value\"}"
+      "value_label": "Value",
+      "value_placeholder": "Plain text or JSON: {\"key\": \"value\"}"
     },
     "edit_dialog": {
       "title": "Edit Value: {key}",
-      "value_label": "Value (JSON)",
-      "json_error": "Invalid JSON"
+      "value_label": "Value"
     },
     "delete_dialog": {
       "title": "Delete Scene Value",
@@ -114,14 +116,13 @@
       "title": "Add Player Value",
       "address_label": "Player Address",
       "key_label": "Key",
-      "value_label": "Value (JSON)",
-      "value_placeholder": "{\"key\": \"value\"}"
+      "value_label": "Value",
+      "value_placeholder": "Plain text or JSON: {\"key\": \"value\"}"
     },
     "edit_dialog": {
       "title": "Edit Value: {key}",
       "subtitle": "Player: {address}",
-      "value_label": "Value (JSON)",
-      "json_error": "Invalid JSON"
+      "value_label": "Value"
     },
     "delete_dialog": {
       "title": "Delete Player Value",
