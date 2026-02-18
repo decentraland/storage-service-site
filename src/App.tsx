@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { BrowserRouter, useLocation } from 'react-router-dom'
-import { AnalyticsProvider, TranslationProvider, usePageTracking } from '@dcl/hooks'
+import { AnalyticsProvider, TranslationProvider } from '@dcl/hooks'
 import { ChainId } from '@dcl/schemas'
 import { Layout } from '@/components/Layout'
 import { Sidebar } from '@/components/Sidebar'
@@ -12,12 +12,6 @@ import { AppRoutes } from '@/routes'
 const translations = { en }
 
 const STORAGE_ROUTES = ['/env', '/scene', '/players']
-
-const PageTracker = () => {
-  const location = useLocation()
-  usePageTracking(location.pathname)
-  return null
-}
 
 const AppContent = () => {
   const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
@@ -48,7 +42,6 @@ const AppContent = () => {
 
   return (
     <AnalyticsProvider writeKey={config.get('SEGMENT_API_KEY') ?? ''} userId={wallet}>
-      <PageTracker />
       <Layout
         isSignedIn={isSignedIn}
         isSigningIn={isConnecting}
