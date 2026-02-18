@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
@@ -25,6 +26,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 import { useAuth } from '@/features/auth'
 import { useDialogState } from '@/hooks'
+import { StorageEvent, useStorageTrack } from '@/lib/analytics'
 import {
   useClearSceneMutation,
   useDeleteSceneValueMutation,
@@ -39,11 +41,14 @@ interface EditDialogProps {
   onClose: () => void
   wallet?: string
   isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
 }
 
-const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogProps) => {
+const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetSceneValueQuery({ wallet, isSignedIn, key: keyName }, { skip: !open || !keyName })
+  const track = useStorageTrack()
+  const { data, isLoading } = useGetSceneValueQuery({ wallet, isSignedIn, key: keyName, realm, position }, { skip: !open || !keyName })
   const [setSceneValue] = useSetSceneValueMutation()
   const fieldRef = useRef<StorageValueFieldRef>(null)
   const [isValid, setIsValid] = useState(false)
@@ -52,9 +57,14 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
     const parsedValue = fieldRef.current?.getParsedValue() ?? null
     if (parsedValue === null) return
 
-    await setSceneValue({ wallet, isSignedIn, key: keyName, value: parsedValue })
-    onClose()
-  }, [keyName, setSceneValue, wallet, isSignedIn, onClose])
+    try {
+      await setSceneValue({ wallet, isSignedIn, realm, position, key: keyName, value: parsedValue }).unwrap()
+      track(StorageEvent.SCENE_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.SCENE_SET_FAILURE)
+    }
+  }, [keyName, setSceneValue, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -96,10 +106,13 @@ interface AddSceneValueDialogProps {
   onClose: () => void
   wallet?: string
   isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
 }
 
-const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn }: AddSceneValueDialogProps) => {
+const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn, realm, position }: AddSceneValueDialogProps) => {
   const { t } = useTranslation()
+  const track = useStorageTrack()
   const [setSceneValue] = useSetSceneValueMutation()
   const [newKey, setNewKey] = useState('')
   const [isValueValid, setIsValueValid] = useState(false)
@@ -119,9 +132,14 @@ const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn }: AddSceneValu
     const parsedValue = fieldRef.current?.getParsedValue() ?? null
     if (parsedValue === null) return
 
-    await setSceneValue({ wallet, isSignedIn, key: newKey.trim(), value: parsedValue })
-    onClose()
-  }, [newKey, setSceneValue, wallet, isSignedIn, onClose])
+    try {
+      await setSceneValue({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: parsedValue }).unwrap()
+      track(StorageEvent.SCENE_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.SCENE_SET_FAILURE)
+    }
+  }, [newKey, setSceneValue, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -164,9 +182,13 @@ const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn }: AddSceneValu
 }
 
 const ScenePage = () => {
+  const [searchParams] = useSearchParams()
+  const realm = searchParams.get('realm')
+  const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
-  const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn }, { skip: !wallet })
+  const track = useStorageTrack()
+  const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [deleteSceneValue] = useDeleteSceneValueMutation()
   const [clearScene] = useClearSceneMutation()
 
@@ -205,14 +227,24 @@ const ScenePage = () => {
 
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedKey) return
-    await deleteSceneValue({ wallet, isSignedIn, key: selectedKey })
+    try {
+      await deleteSceneValue({ wallet, isSignedIn, realm, position, key: selectedKey }).unwrap()
+      track(StorageEvent.SCENE_DELETE_SUCCESS)
+    } catch {
+      track(StorageEvent.SCENE_DELETE_FAILURE)
+    }
     handleCloseDeleteDialog()
-  }, [selectedKey, deleteSceneValue, wallet, isSignedIn, handleCloseDeleteDialog])
+  }, [selectedKey, deleteSceneValue, wallet, isSignedIn, realm, position, handleCloseDeleteDialog, track])
 
   const handleConfirmClear = useCallback(async () => {
-    await clearScene({ wallet, isSignedIn })
+    try {
+      await clearScene({ wallet, isSignedIn, realm, position }).unwrap()
+      track(StorageEvent.SCENE_CLEAR_SUCCESS)
+    } catch {
+      track(StorageEvent.SCENE_CLEAR_FAILURE)
+    }
     clearDialog.handleClose()
-  }, [clearScene, wallet, isSignedIn, clearDialog])
+  }, [clearScene, wallet, isSignedIn, realm, position, clearDialog, track])
 
   if (isLoading) {
     return (
@@ -279,10 +311,19 @@ const ScenePage = () => {
           onClose={handleCloseEditDialog}
           wallet={wallet}
           isSignedIn={isSignedIn}
+          realm={realm}
+          position={position}
         />
       )}
 
-      <AddSceneValueDialog open={addDialog.isOpen} onClose={addDialog.handleClose} wallet={wallet} isSignedIn={isSignedIn} />
+      <AddSceneValueDialog
+        open={addDialog.isOpen}
+        onClose={addDialog.handleClose}
+        wallet={wallet}
+        isSignedIn={isSignedIn}
+        realm={realm}
+        position={position}
+      />
 
       <ConfirmDialog
         open={deleteDialog.isOpen}

@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
+import { usePageTracking } from '@dcl/hooks'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Env } from '@/pages/Env'
 import { NotFound } from '@/pages/NotFound'
@@ -25,6 +26,9 @@ const RootRedirect = () => {
 }
 
 const AppRoutes = () => {
+  const location = useLocation()
+  usePageTracking(location.pathname)
+
   return (
     <Routes>
       <Route element={<ProtectedRoute />}>

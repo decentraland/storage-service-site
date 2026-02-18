@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { BrowserRouter, useLocation } from 'react-router-dom'
-import { TranslationProvider } from '@dcl/hooks'
+import { AnalyticsProvider, TranslationProvider } from '@dcl/hooks'
 import { ChainId } from '@dcl/schemas'
 import { Layout } from '@/components/Layout'
 import { Sidebar } from '@/components/Sidebar'
@@ -41,18 +41,20 @@ const AppContent = () => {
   )
 
   return (
-    <Layout
-      isSignedIn={isSignedIn}
-      isSigningIn={isConnecting}
-      address={wallet}
-      avatar={avatar}
-      sidebar={isStorageRoute && isSignedIn ? <Sidebar /> : undefined}
-      onClickSignIn={handleClickSignIn}
-      onClickSignOut={handleClickSignOut}
-      onClickNavbarItem={handleClickNavbarItem}
-    >
-      <AppRoutes />
-    </Layout>
+    <AnalyticsProvider writeKey={config.get('SEGMENT_API_KEY') ?? ''} userId={wallet}>
+      <Layout
+        isSignedIn={isSignedIn}
+        isSigningIn={isConnecting}
+        address={wallet}
+        avatar={avatar}
+        sidebar={isStorageRoute && isSignedIn ? <Sidebar /> : undefined}
+        onClickSignIn={handleClickSignIn}
+        onClickSignOut={handleClickSignOut}
+        onClickNavbarItem={handleClickNavbarItem}
+      >
+        <AppRoutes />
+      </Layout>
+    </AnalyticsProvider>
   )
 }
 
