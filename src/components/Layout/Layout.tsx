@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import Box from '@mui/material/Box'
+import Container from '@mui/material/Container'
 import type { Avatar } from '@dcl/schemas'
-import { Box, Container, Footer, Navbar, NavbarPages } from 'decentraland-ui2'
+import { Footer, Navbar, NavbarPages } from 'decentraland-ui2'
 
 interface LayoutProps {
   children: ReactNode

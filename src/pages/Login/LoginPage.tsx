@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
-import { Box, Button, Typography } from 'decentraland-ui2'
 import { useAuth } from '@/features/auth'
 
 const LoginPage = () => {

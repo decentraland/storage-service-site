@@ -1,4 +1,5 @@
-import { Box, Typography } from 'decentraland-ui2'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 
 const Home = () => {
   return (

@@ -9,7 +9,18 @@ export const client = createApi({
       return headers
     }
   }),
-  tagTypes: ['Env', 'Scene', 'Player', 'PlayerKeys', 'Permissions', 'UserLands', 'UserDCLNames', 'ContributableDomains', 'UserRentals'],
+  tagTypes: [
+    'Env',
+    'Scene',
+    'Player',
+    'PlayerKeys',
+    'Profiles',
+    'Permissions',
+    'UserLands',
+    'UserDCLNames',
+    'ContributableDomains',
+    'UserRentals'
+  ],
   keepUnusedDataFor: 60,
   refetchOnFocus: false,
   refetchOnReconnect: true,

@@ -134,7 +134,18 @@ const storageApiHandlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // List player storage for an address (OpenAPI: ListStorageItemsResponse). GET /players is not in OpenAPI.
+  // List players (OpenAPI: ListPlayersResponse)
+  http.get(`${baseUrl()}/players`, ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '100', 10) || 100))
+    const offset = Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0)
+    const addresses = Object.keys(playerStore).sort()
+    const total = addresses.length
+    const data = addresses.slice(offset, offset + limit)
+    return HttpResponse.json({ data, pagination: pagination(total, limit, offset) })
+  }),
+
+  // List player storage for an address (OpenAPI: ListStorageItemsResponse)
   http.get(`${baseUrl()}/players/:address/values`, ({ params, request }) => {
     const { address } = params
     const playerData = playerStore[address as string]

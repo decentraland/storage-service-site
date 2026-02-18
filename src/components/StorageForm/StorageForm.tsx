@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import type { FC } from 'react'
-import { Box, Button, TextField } from 'decentraland-ui2'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
 
 interface StorageFormProps {
   keyLabel?: string

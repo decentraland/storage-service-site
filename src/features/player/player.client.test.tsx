@@ -8,6 +8,7 @@ import {
   useDeletePlayerValueMutation,
   useGetPlayerValueQuery,
   useListPlayerKeysQuery,
+  useListPlayersQuery,
   useSetPlayerValueMutation
 } from './player.client'
 import type { PlayerKey } from './player.types'
@@ -17,6 +18,22 @@ const authParams = { wallet: undefined, isSignedIn: false }
 describe('player client', () => {
   beforeEach(() => {
     resetStorageApiStores()
+  })
+
+  describe('useListPlayersQuery', () => {
+    describe('when fetching all players', () => {
+      it('should return list of player addresses', async () => {
+        const store = setupStore()
+        const wrapper = ({ children }: { children: React.ReactNode }) => <Provider store={store}>{children}</Provider>
+
+        const { result } = renderHook(() => useListPlayersQuery(authParams), { wrapper })
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        expect(result.current.data).toContain('0xplayer1')
+        expect(result.current.data).toContain('0xplayer2')
+      })
+    })
   })
 
   describe('useListPlayerKeysQuery', () => {

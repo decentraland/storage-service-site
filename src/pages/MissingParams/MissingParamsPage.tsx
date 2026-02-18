@@ -1,5 +1,6 @@
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
-import { Box, Typography } from 'decentraland-ui2'
 
 const MissingParamsPage = () => {
   const { t } = useTranslation()
