@@ -25,7 +25,7 @@ Authentication using Decentraland's SSO (Single Sign-On) system. Users authentic
 │  │  - avatar: Avatar | undefined                        │    │
 │  │  - chainId: ChainId                                  │    │
 │  │  - isSignedIn: boolean                               │    │
-│  │  - isConnecting: boolean                             │    │
+│  │  - isConnecting: boolean  (initial: true)            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────┐    │
@@ -34,30 +34,82 @@ Authentication using Decentraland's SSO (Single Sign-On) system. Users authentic
 │  │  - signOut() → disconnect + clear identity           │    │
 │  │  - changeNetwork(chainId) → wallet_switchEthereumChain│   │
 │  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  ProtectedRoute (layout route):                      │    │
+│  │  - isConnecting → CircularProgress spinner           │    │
+│  │  - !isSignedIn  → LoginPage                          │    │
+│  │  - isSignedIn   → <Outlet /> (child route)           │    │
+│  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Route Protection
+
+All routes are protected by the `ProtectedRoute` layout route. Unauthenticated users see the `LoginPage` instead of the requested page.
+
+```
+src/components/ProtectedRoute/
+├── index.ts               # Public export
+├── ProtectedRoute.tsx     # Layout route guard
+└── ProtectedRoute.test.tsx
+```
+
+`ProtectedRoute` uses `useAuth()` and renders one of three states:
+
+| `isConnecting` | `isSignedIn` | Renders                            |
+| -------------- | ------------ | ---------------------------------- |
+| `true`         | any          | `CircularProgress` spinner         |
+| `false`        | `false`      | `LoginPage` (sign-in prompt)       |
+| `false`        | `true`       | `<Outlet />` (matched child route) |
+
+### Route Configuration
+
+```typescript
+// src/routes/routes.tsx
+<Routes>
+  <Route element={<ProtectedRoute />}>
+    <Route path="/" element={<RootRedirect />} />
+    <Route path="/select" element={<SelectPage />} />
+    <Route path="/env" element={<Env />} />
+    <Route path="/scene" element={<Scene />} />
+    <Route path="/players" element={<Players />} />
+    <Route path="/players/:address" element={<PlayerDetail />} />
+  </Route>
+  <Route path="*" element={<NotFound />} />
+</Routes>
+```
+
+The 404 route is intentionally outside the guard (no auth needed to show "not found"). The `Layout` (Navbar, Footer) wraps everything in `App.tsx`, so the Navbar sign-in button is always accessible. The sidebar is only shown when `isSignedIn && isStorageRoute`.
 
 ## Auth Flow
 
 ### 1. Initial Load (checkAuthStatus)
 
+**Important**: `isConnecting` initializes to `true` so the first render shows a loading spinner (not the login page). This prevents a flash of the `LoginPage` before the auth check completes.
+
 ```
-App Loads
+App Loads (isConnecting = true from initial state)
+    │
+    ▼
+ProtectedRoute renders CircularProgress spinner
     │
     ▼
 connection.tryPreviousConnection()
     │
     ├─► No wallet found → isSignedIn = false, isConnecting = false
+    │                      → ProtectedRoute renders LoginPage
     │
     └─► Wallet found
             │
             ▼
         localStorageGetIdentity(wallet)
             │
-            ├─► No identity or expired → isSignedIn = false
+            ├─► No identity or expired → isSignedIn = false, isConnecting = false
+            │                            → ProtectedRoute renders LoginPage
             │
-            └─► Valid identity → isSignedIn = true
-                    │
+            └─► Valid identity → isSignedIn = true, isConnecting = false
+                    │             → ProtectedRoute renders <Outlet />
                     ▼
                 fetchAvatar(wallet)
 ```
@@ -109,6 +161,15 @@ src/features/auth/
 ├── AuthProvider.tsx   # Context provider + useAuth hook
 ├── auth.types.ts      # TypeScript interfaces
 └── auth.utils.ts      # Utility functions
+
+src/components/ProtectedRoute/
+├── index.ts               # Public export
+├── ProtectedRoute.tsx     # Route guard (isConnecting → spinner, !isSignedIn → LoginPage)
+└── ProtectedRoute.test.tsx
+
+src/pages/Login/
+├── index.ts           # Public export
+└── LoginPage.tsx      # Sign-in prompt shown by ProtectedRoute
 ```
 
 ## Types
@@ -252,9 +313,3 @@ const authenticatedFetch = createAuthenticatedFetch(wallet, isSignedIn)
 // Will use signed fetch if authenticated, regular fetch otherwise
 const response = await authenticatedFetch('/api/endpoint')
 ```
-
-## Reference Implementation
-
-Based on `jump-site`'s AuthProvider:
-
-- `/Users/gabriel.diazdecentraland.org/Projects/jump-site/src/contexts/auth/AuthProvider.tsx`

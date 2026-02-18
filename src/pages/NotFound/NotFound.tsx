@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
-import { Box, Button, Typography } from 'decentraland-ui2'
 
 const NotFound = () => {
   const navigate = useNavigate()

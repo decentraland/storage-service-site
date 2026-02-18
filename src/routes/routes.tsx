@@ -1,6 +1,9 @@
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
+import { usePageTracking } from '@dcl/hooks'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Env } from '@/pages/Env'
 import { NotFound } from '@/pages/NotFound'
+import { PlayerDetail } from '@/pages/PlayerDetail'
 import { Players } from '@/pages/Players'
 import { Scene } from '@/pages/Scene'
 import { SelectPage } from '@/pages/Select'
@@ -23,13 +26,19 @@ const RootRedirect = () => {
 }
 
 const AppRoutes = () => {
+  const location = useLocation()
+  usePageTracking(location.pathname)
+
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="/select" element={<SelectPage />} />
-      <Route path="/env" element={<Env />} />
-      <Route path="/scene" element={<Scene />} />
-      <Route path="/players" element={<Players />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/select" element={<SelectPage />} />
+        <Route path="/env" element={<Env />} />
+        <Route path="/scene" element={<Scene />} />
+        <Route path="/players" element={<Players />} />
+        <Route path="/players/:address" element={<PlayerDetail />} />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

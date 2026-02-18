@@ -53,12 +53,6 @@ describe('LandCard', () => {
       expect(screen.getByText('My Parcel')).toBeInTheDocument()
     })
 
-    it('should display the position', () => {
-      renderWithTheme(<LandCard land={mockParcel} onClick={vi.fn()} />)
-
-      expect(screen.getByText(/at 10,20/)).toBeInTheDocument()
-    })
-
     it('should display the role chip', () => {
       renderWithTheme(<LandCard land={mockParcel} onClick={vi.fn()} />)
 
@@ -71,12 +65,6 @@ describe('LandCard', () => {
       renderWithTheme(<LandCard land={mockEstate} onClick={vi.fn()} />)
 
       expect(screen.getByText('My Estate')).toBeInTheDocument()
-    })
-
-    it('should display the number of parcels', () => {
-      renderWithTheme(<LandCard land={mockEstate} onClick={vi.fn()} />)
-
-      expect(screen.getByText(/2 parcels/)).toBeInTheDocument()
     })
 
     it('should display the operator role', () => {

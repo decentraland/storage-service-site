@@ -4,8 +4,14 @@ import prod from './env/prd.json'
 
 const config = createConfig(
   {
-    [Env.DEVELOPMENT as string]: dev,
-    [Env.PRODUCTION as string]: prod
+    [Env.DEVELOPMENT as string]: {
+      ...dev,
+      SEGMENT_API_KEY: import.meta.env.VITE_SEGMENT_DEV_API_KEY ?? ''
+    },
+    [Env.PRODUCTION as string]: {
+      ...prod,
+      SEGMENT_API_KEY: import.meta.env.VITE_SEGMENT_PRD_API_KEY ?? ''
+    }
   },
   {
     systemEnvVariables: {

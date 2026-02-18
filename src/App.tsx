@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { BrowserRouter, useLocation } from 'react-router-dom'
-import { TranslationProvider } from '@dcl/hooks'
+import { AnalyticsProvider, TranslationProvider } from '@dcl/hooks'
 import { ChainId } from '@dcl/schemas'
 import { Layout } from '@/components/Layout'
 import { Sidebar } from '@/components/Sidebar'
@@ -17,7 +17,7 @@ const AppContent = () => {
   const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
   const location = useLocation()
 
-  const isStorageRoute = STORAGE_ROUTES.includes(location.pathname)
+  const isStorageRoute = STORAGE_ROUTES.some(route => location.pathname.startsWith(route))
 
   const handleClickSignIn = useCallback(() => {
     signIn()
@@ -41,18 +41,20 @@ const AppContent = () => {
   )
 
   return (
-    <Layout
-      isSignedIn={isSignedIn}
-      isSigningIn={isConnecting}
-      address={wallet}
-      avatar={avatar}
-      sidebar={isStorageRoute ? <Sidebar /> : undefined}
-      onClickSignIn={handleClickSignIn}
-      onClickSignOut={handleClickSignOut}
-      onClickNavbarItem={handleClickNavbarItem}
-    >
-      <AppRoutes />
-    </Layout>
+    <AnalyticsProvider writeKey={config.get('SEGMENT_API_KEY') ?? ''} userId={wallet}>
+      <Layout
+        isSignedIn={isSignedIn}
+        isSigningIn={isConnecting}
+        address={wallet}
+        avatar={avatar}
+        sidebar={isStorageRoute && isSignedIn ? <Sidebar /> : undefined}
+        onClickSignIn={handleClickSignIn}
+        onClickSignOut={handleClickSignOut}
+        onClickNavbarItem={handleClickNavbarItem}
+      >
+        <AppRoutes />
+      </Layout>
+    </AnalyticsProvider>
   )
 }
 

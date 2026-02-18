@@ -1,31 +1,32 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 import EditIcon from '@mui/icons-material/Edit'
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography
-} from '@mui/material'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import IconButton from '@mui/material/IconButton'
+import Paper from '@mui/material/Paper'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { useTranslation } from '@dcl/hooks'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { StorageValueField, type StorageValueFieldRef } from '@/components/StorageValueField'
 import { useAuth } from '@/features/auth'
+import { useDialogState } from '@/hooks'
+import { StorageEvent, useStorageTrack } from '@/lib/analytics'
 import {
   useClearSceneMutation,
   useDeleteSceneValueMutation,
@@ -40,46 +41,30 @@ interface EditDialogProps {
   onClose: () => void
   wallet?: string
   isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
 }
 
-const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogProps) => {
+const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn, realm, position }: EditDialogProps) => {
   const { t } = useTranslation()
-  const { data, isLoading } = useGetSceneValueQuery({ wallet, isSignedIn, key: keyName }, { skip: !open || !keyName })
+  const track = useStorageTrack()
+  const { data, isLoading } = useGetSceneValueQuery({ wallet, isSignedIn, key: keyName, realm, position }, { skip: !open || !keyName })
   const [setSceneValue] = useSetSceneValueMutation()
-  const [editValue, setEditValue] = useState('')
-  const [jsonError, setJsonError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (data?.value !== undefined) {
-      setEditValue(JSON.stringify(data.value, null, 2))
-      setJsonError(null)
-    }
-  }, [data?.value])
-
-  const handleValueChange = useCallback(
-    (value: string) => {
-      setEditValue(value)
-      try {
-        JSON.parse(value)
-        setJsonError(null)
-      } catch {
-        setJsonError(t('scene_page.edit_dialog.json_error'))
-      }
-    },
-    [t]
-  )
+  const fieldRef = useRef<StorageValueFieldRef>(null)
+  const [isValid, setIsValid] = useState(false)
 
   const handleSave = useCallback(async () => {
-    if (editValue.trim()) {
-      try {
-        const parsedValue = JSON.parse(editValue.trim())
-        await setSceneValue({ wallet, isSignedIn, key: keyName, value: parsedValue })
-        onClose()
-      } catch {
-        setJsonError(t('scene_page.edit_dialog.json_error'))
-      }
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    try {
+      await setSceneValue({ wallet, isSignedIn, realm, position, key: keyName, value: parsedValue }).unwrap()
+      track(StorageEvent.SCENE_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.SCENE_SET_FAILURE)
     }
-  }, [editValue, keyName, setSceneValue, wallet, isSignedIn, onClose, t])
+  }, [keyName, setSceneValue, wallet, isSignedIn, realm, position, onClose, track])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -90,32 +75,105 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
             <CircularProgress />
           </Box>
         ) : (
-          <>
-            <TextField
-              autoFocus
-              margin="dense"
-              label={t('scene_page.edit_dialog.value_label')}
-              fullWidth
-              variant="outlined"
-              multiline
-              rows={12}
-              value={editValue}
-              onChange={e => handleValueChange(e.target.value)}
-              error={!!jsonError}
-              sx={{ fontFamily: 'monospace' }}
-              inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-            />
-            {jsonError && (
-              <Alert severity="error" sx={{ mt: 1 }}>
-                {jsonError}
-              </Alert>
-            )}
-          </>
+          <StorageValueField
+            ref={fieldRef}
+            defaultValue={data?.value}
+            onChange={e => setIsValid(e.isValid)}
+            autoFocus
+            margin="dense"
+            label={t('scene_page.edit_dialog.value_label')}
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={12}
+            sx={{ fontFamily: 'monospace' }}
+            inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+          />
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" disabled={isLoading || !!jsonError || !editValue.trim()}>
+        <Button onClick={handleSave} variant="contained" disabled={isLoading || !isValid}>
+          {t('common.save')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+interface AddSceneValueDialogProps {
+  open: boolean
+  onClose: () => void
+  wallet?: string
+  isSignedIn?: boolean
+  realm?: string | null
+  position?: string | null
+}
+
+const AddSceneValueDialog = ({ open, onClose, wallet, isSignedIn, realm, position }: AddSceneValueDialogProps) => {
+  const { t } = useTranslation()
+  const track = useStorageTrack()
+  const [setSceneValue] = useSetSceneValueMutation()
+  const [newKey, setNewKey] = useState('')
+  const [isValueValid, setIsValueValid] = useState(false)
+  const fieldRef = useRef<StorageValueFieldRef>(null)
+
+  useEffect(() => {
+    if (open) {
+      setNewKey('')
+      setIsValueValid(false)
+      fieldRef.current?.reset()
+    }
+  }, [open])
+
+  const handleSave = useCallback(async () => {
+    if (!newKey.trim()) return
+
+    const parsedValue = fieldRef.current?.getParsedValue() ?? null
+    if (parsedValue === null) return
+
+    try {
+      await setSceneValue({ wallet, isSignedIn, realm, position, key: newKey.trim(), value: parsedValue }).unwrap()
+      track(StorageEvent.SCENE_SET_SUCCESS)
+      onClose()
+    } catch {
+      track(StorageEvent.SCENE_SET_FAILURE)
+    }
+  }, [newKey, setSceneValue, wallet, isSignedIn, realm, position, onClose, track])
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{t('scene_page.add_dialog.title')}</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          margin="dense"
+          id="scene-key"
+          label={t('scene_page.add_dialog.key_label')}
+          type="text"
+          fullWidth
+          variant="outlined"
+          value={newKey}
+          onChange={e => setNewKey(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+        <StorageValueField
+          ref={fieldRef}
+          onChange={e => setIsValueValid(e.isValid)}
+          margin="dense"
+          id="scene-value"
+          label={t('scene_page.add_dialog.value_label')}
+          type="text"
+          fullWidth
+          variant="outlined"
+          multiline
+          rows={4}
+          placeholder={t('scene_page.add_dialog.value_placeholder')}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button onClick={handleSave} variant="contained" disabled={!newKey.trim() || !isValueValid}>
           {t('common.save')}
         </Button>
       </DialogActions>
@@ -124,86 +182,69 @@ const EditDialog = ({ keyName, open, onClose, wallet, isSignedIn }: EditDialogPr
 }
 
 const ScenePage = () => {
+  const [searchParams] = useSearchParams()
+  const realm = searchParams.get('realm')
+  const position = searchParams.get('position')
   const { wallet, isSignedIn } = useAuth()
   const { t } = useTranslation()
-  const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn }, { skip: !wallet })
-  const [setSceneValue] = useSetSceneValueMutation()
+  const track = useStorageTrack()
+  const { data: sceneKeys, isLoading } = useListSceneKeysQuery({ wallet, isSignedIn, realm, position }, { skip: !wallet })
   const [deleteSceneValue] = useDeleteSceneValueMutation()
   const [clearScene] = useClearSceneMutation()
 
-  // Dialog states
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const addDialog = useDialogState()
+  const editDialog = useDialogState()
+  const deleteDialog = useDialogState()
+  const clearDialog = useDialogState()
+
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
-  // Form state
-  const [newKey, setNewKey] = useState('')
-  const [newValue, setNewValue] = useState('')
-
-  const handleOpenAddDialog = useCallback(() => {
-    setNewKey('')
-    setNewValue('')
-    setIsAddDialogOpen(true)
-  }, [])
-
-  const handleCloseAddDialog = useCallback(() => {
-    setIsAddDialogOpen(false)
-  }, [])
-
-  const handleSaveValue = useCallback(async () => {
-    if (newKey.trim() && newValue.trim()) {
-      try {
-        const parsedValue = JSON.parse(newValue.trim())
-        await setSceneValue({ wallet, isSignedIn, key: newKey.trim(), value: parsedValue })
-        setIsAddDialogOpen(false)
-      } catch {
-        // Invalid JSON - could show error to user
-      }
-    }
-  }, [newKey, newValue, setSceneValue, wallet, isSignedIn])
-
-  const handleOpenEditDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsEditDialogOpen(true)
-  }, [])
+  const handleOpenEditDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      editDialog.handleOpen()
+    },
+    [editDialog]
+  )
 
   const handleCloseEditDialog = useCallback(() => {
-    setIsEditDialogOpen(false)
+    editDialog.handleClose()
     setSelectedKey(null)
-  }, [])
+  }, [editDialog])
 
-  const handleOpenDeleteDialog = useCallback((key: string) => {
-    setSelectedKey(key)
-    setIsDeleteDialogOpen(true)
-  }, [])
+  const handleOpenDeleteDialog = useCallback(
+    (key: string) => {
+      setSelectedKey(key)
+      deleteDialog.handleOpen()
+    },
+    [deleteDialog]
+  )
 
   const handleCloseDeleteDialog = useCallback(() => {
-    setIsDeleteDialogOpen(false)
+    deleteDialog.handleClose()
     setSelectedKey(null)
-  }, [])
+  }, [deleteDialog])
 
   const handleConfirmDelete = useCallback(async () => {
-    if (selectedKey) {
-      await deleteSceneValue({ wallet, isSignedIn, key: selectedKey })
-      setIsDeleteDialogOpen(false)
-      setSelectedKey(null)
+    if (!selectedKey) return
+    try {
+      await deleteSceneValue({ wallet, isSignedIn, realm, position, key: selectedKey }).unwrap()
+      track(StorageEvent.SCENE_DELETE_SUCCESS)
+    } catch {
+      track(StorageEvent.SCENE_DELETE_FAILURE)
     }
-  }, [selectedKey, deleteSceneValue, wallet, isSignedIn])
-
-  const handleOpenClearDialog = useCallback(() => {
-    setIsClearDialogOpen(true)
-  }, [])
-
-  const handleCloseClearDialog = useCallback(() => {
-    setIsClearDialogOpen(false)
-  }, [])
+    handleCloseDeleteDialog()
+  }, [selectedKey, deleteSceneValue, wallet, isSignedIn, realm, position, handleCloseDeleteDialog, track])
 
   const handleConfirmClear = useCallback(async () => {
-    await clearScene({ wallet, isSignedIn })
-    setIsClearDialogOpen(false)
-  }, [clearScene, wallet, isSignedIn])
+    try {
+      await clearScene({ wallet, isSignedIn, realm, position }).unwrap()
+      track(StorageEvent.SCENE_CLEAR_SUCCESS)
+    } catch {
+      track(StorageEvent.SCENE_CLEAR_FAILURE)
+    }
+    clearDialog.handleClose()
+  }, [clearScene, wallet, isSignedIn, realm, position, clearDialog, track])
 
   if (isLoading) {
     return (
@@ -220,11 +261,11 @@ const ScenePage = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{t('scene_page.title')}</Typography>
         <Box>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog} sx={{ mr: 1 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={addDialog.handleOpen} sx={{ mr: 1 }}>
             {t('scene_page.add')}
           </Button>
           {hasSceneKeys && (
-            <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={handleOpenClearDialog}>
+            <Button variant="outlined" color="error" startIcon={<DeleteSweepIcon />} onClick={clearDialog.handleOpen}>
               {t('scene_page.clear_all')}
             </Button>
           )}
@@ -263,76 +304,46 @@ const ScenePage = () => {
         </Paper>
       )}
 
-      {/* Edit Dialog */}
       {selectedKey && (
-        <EditDialog keyName={selectedKey} open={isEditDialogOpen} onClose={handleCloseEditDialog} wallet={wallet} isSignedIn={isSignedIn} />
+        <EditDialog
+          keyName={selectedKey}
+          open={editDialog.isOpen}
+          onClose={handleCloseEditDialog}
+          wallet={wallet}
+          isSignedIn={isSignedIn}
+          realm={realm}
+          position={position}
+        />
       )}
 
-      {/* Add Dialog */}
-      <Dialog open={isAddDialogOpen} onClose={handleCloseAddDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('scene_page.add_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="scene-key"
-            label={t('scene_page.add_dialog.key_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            id="scene-value"
-            label={t('scene_page.add_dialog.value_label')}
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={4}
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-            placeholder={t('scene_page.add_dialog.value_placeholder')}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAddDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSaveValue} variant="contained" disabled={!newKey.trim() || !newValue.trim()}>
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddSceneValueDialog
+        open={addDialog.isOpen}
+        onClose={addDialog.handleClose}
+        wallet={wallet}
+        isSignedIn={isSignedIn}
+        realm={realm}
+        position={position}
+      />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>{t('scene_page.delete_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('scene_page.delete_dialog.message', { key: selectedKey ?? '' })}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.isOpen}
+        title={t('scene_page.delete_dialog.title')}
+        message={t('scene_page.delete_dialog.message', { key: selectedKey ?? '' })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCloseDeleteDialog}
+      />
 
-      {/* Clear All Confirmation Dialog */}
-      <Dialog open={isClearDialogOpen} onClose={handleCloseClearDialog}>
-        <DialogTitle>{t('scene_page.clear_dialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>{t('scene_page.clear_dialog.message')}</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseClearDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleConfirmClear} color="error" variant="contained">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={clearDialog.isOpen}
+        title={t('scene_page.clear_dialog.title')}
+        message={t('scene_page.clear_dialog.message')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleConfirmClear}
+        onCancel={clearDialog.handleClose}
+      />
     </Box>
   )
 }

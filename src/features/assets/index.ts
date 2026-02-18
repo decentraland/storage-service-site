@@ -1,6 +1,10 @@
 // Client hooks
 export { assetsClient, useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery } from './assets.client'
 
+// Hooks
+export { useGetLands, useGetWorlds, usePaginatedSearch } from './hooks'
+export type { UseGetLandsResult, UseGetWorldsResult, UsePaginatedSearchOptions, UsePaginatedSearchResult } from './hooks'
+
 // Components
 export { AssetSelectorPage, LandCard, WorldCard } from './components'
 
