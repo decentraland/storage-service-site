@@ -13,6 +13,8 @@ const translations = { en }
 
 const STORAGE_ROUTES = ['/env', '/scene', '/players']
 
+const basename = /^decentraland.(zone|org|today)$/.test(window.location.host) ? '/storage' : '/'
+
 const AppContent = () => {
   const { wallet, avatar, isSignedIn, isConnecting, signIn, signOut } = useAuth()
   const location = useLocation()
@@ -69,7 +71,7 @@ const App = () => {
   )
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <TranslationProvider locale="en" translations={translations}>
         <AuthProvider config={authConfig}>
           <AppContent />
