@@ -1,5 +1,7 @@
+/// <reference types="vitest" />
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
+import path from 'path'
 
 // https://vitejs.dev/config/
 // eslint-disable-next-line import/no-default-export
@@ -8,6 +10,42 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
-    ...(command === 'build' ? { base: envVariables.VITE_BASE_URL } : undefined)
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src')
+      }
+    },
+    build: {
+      sourcemap: false
+    },
+    ...(command === 'build' ? { base: envVariables.VITE_BASE_URL } : undefined),
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      testTimeout: process.env.CI ? 60000 : 30000,
+      pool: 'forks',
+      setupFiles: ['./src/test/setup.ts'],
+      include: ['src/**/*.test.{ts,tsx}'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'json', 'html']
+      },
+      server: {
+        deps: {
+          inline: ['decentraland-ui2', '@dcl/hooks', '@dcl/ui-env', '@dcl/schemas', 'decentraland-connect']
+        }
+      }
+    },
+    server: {
+      proxy: {
+        '/auth': {
+          target: 'https://decentraland.zone',
+          followRedirects: true,
+          changeOrigin: true,
+          secure: false,
+          ws: true
+        }
+      }
+    }
   }
 })
