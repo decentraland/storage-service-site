@@ -253,7 +253,7 @@ describe('AssetSelectorPage', () => {
   })
 
   describe('when clicking on a world', () => {
-    it('should navigate to storage page with realm param', async () => {
+    it('should navigate to storage page with realm and position params', async () => {
       const user = userEvent.setup()
       renderWithProviders(<AssetSelectorPage />)
 
@@ -264,9 +264,19 @@ describe('AssetSelectorPage', () => {
         { timeout: 3000 }
       )
 
-      await user.click(screen.getByRole('button', { name: /select myworld\.dcl\.eth/i }))
+      // Wait for scenes to load so the EDIT button has a position
+      await waitFor(
+        () => {
+          expect(screen.getAllByRole('button', { name: /edit/i }).length).toBeGreaterThan(0)
+        },
+        { timeout: 3000 }
+      )
+
+      // Click the first EDIT button (for myworld.dcl.eth which is first alphabetically)
+      await user.click(screen.getAllByRole('button', { name: /^edit$/i })[0])
 
       expect(window.location.search).toContain('realm=myworld.dcl.eth')
+      expect(window.location.search).toContain('position=')
     })
   })
 

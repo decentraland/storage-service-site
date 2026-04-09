@@ -1,6 +1,6 @@
 import { config } from '@/config'
 import { type WrapSignedFetchError, createScopedQueryFetch, wrapSignedFetch } from '@/lib/fetch'
-import { client } from '@/services/client'
+import { type AuthParams, type StorageContext, client, storageContextId } from '@/services/client'
 import type { DeleteSceneValueParams, GetSceneValueParams, SceneKey, SceneValue, SetSceneValueParams } from './scene.types'
 
 interface ListStorageItemsResponse {
@@ -11,18 +11,6 @@ interface ListStorageItemsResponse {
 interface StorageValueResponse {
   value: unknown
 }
-
-interface AuthParams {
-  wallet?: string
-  isSignedIn?: boolean
-}
-
-interface StorageContext {
-  realm?: string | null
-  position?: string | null
-}
-
-const storageContextId = (realm?: string | null, position?: string | null): string => realm ?? position ?? ''
 
 const baseUrl = () => config.get('STORAGE_API_URL')
 

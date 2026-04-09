@@ -1,9 +1,21 @@
 // Client hooks
-export { assetsClient, useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery } from './assets.client'
+export {
+  assetsClient,
+  useGetContributableDomainsQuery,
+  useGetUserDCLNamesQuery,
+  useGetUserLandsQuery,
+  useGetWorldScenesQuery
+} from './assets.client'
 
 // Hooks
-export { useGetLands, useGetWorlds, usePaginatedSearch } from './hooks'
-export type { UseGetLandsResult, UseGetWorldsResult, UsePaginatedSearchOptions, UsePaginatedSearchResult } from './hooks'
+export { useGetLands, useGetWorlds, usePaginatedSearch, useWorldScenes } from './hooks'
+export type {
+  UseGetLandsResult,
+  UseGetWorldsResult,
+  UsePaginatedSearchOptions,
+  UsePaginatedSearchResult,
+  UseWorldScenesResult
+} from './hooks'
 
 // Components
 export { AssetSelectorPage, LandCard, WorldCard } from './components'
@@ -23,5 +35,6 @@ export type {
   SubgraphAuthorization,
   SubgraphEstate,
   SubgraphParcel,
-  World
+  World,
+  WorldScene
 } from './assets.types'
