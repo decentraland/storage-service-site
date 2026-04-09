@@ -9,12 +9,15 @@ import type {
   Land,
   LandQueryResponse,
   Rental,
-  RentalsQueryResponse
+  RentalsQueryResponse,
+  WorldScene,
+  WorldScenesResponse
 } from './assets.types'
 
 const LAND_MANAGER_SUBGRAPH = config.get('LAND_MANAGER_SUBGRAPH')
 const MARKETPLACE_SUBGRAPH = config.get('MARKETPLACE_SUBGRAPH')
 const RENTALS_SUBGRAPH = config.get('RENTALS_SUBGRAPH')
+const WORLDS_CONTENT_SERVER_URL = config.get('WORLDS_CONTENT_SERVER_URL')
 
 const assetsClient = client.injectEndpoints({
   endpoints: build => ({
@@ -97,10 +100,41 @@ const assetsClient = client.injectEndpoints({
       },
       serializeQueryArgs: ({ queryArgs, endpointName }) => ({ endpointName, address: queryArgs.address }),
       providesTags: ['ContributableDomains']
+    }),
+
+    getWorldScenes: build.query<WorldScene[], { worldName: string }>({
+      queryFn: async ({ worldName }) => {
+        try {
+          const response = await fetch(`${WORLDS_CONTENT_SERVER_URL}/world/${encodeURIComponent(worldName)}/scenes`)
+          if (!response.ok) {
+            return { error: { status: response.status, data: await response.text().catch(() => undefined) } }
+          }
+          const json: WorldScenesResponse = await response.json()
+          const data: WorldScene[] = json.scenes
+            .map(item => ({
+              title: item.entity.metadata.display?.title ?? item.entity.metadata.scene.base,
+              baseParcel: item.entity.metadata.scene.base
+            }))
+            .sort((a, b) => a.title.localeCompare(b.title))
+          return { data }
+        } catch (error) {
+          return { error: { status: 'FETCH_ERROR', error: String(error) } }
+        }
+      },
+      serializeQueryArgs: ({ queryArgs, endpointName }) => ({ endpointName, worldName: queryArgs.worldName }),
+      providesTags: (_result, _error, { worldName }) => [{ type: 'WorldScenes', id: worldName }]
     })
   })
 })
 
-const { useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery, useGetUserRentalsQuery } = assetsClient
+const { useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery, useGetUserRentalsQuery, useGetWorldScenesQuery } =
+  assetsClient
 
-export { assetsClient, useGetContributableDomainsQuery, useGetUserDCLNamesQuery, useGetUserLandsQuery, useGetUserRentalsQuery }
+export {
+  assetsClient,
+  useGetContributableDomainsQuery,
+  useGetUserDCLNamesQuery,
+  useGetUserLandsQuery,
+  useGetUserRentalsQuery,
+  useGetWorldScenesQuery
+}

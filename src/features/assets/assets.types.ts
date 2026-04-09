@@ -30,6 +30,30 @@ interface World {
   role: 'owner' | 'collaborator'
 }
 
+interface WorldSceneEntity {
+  metadata: {
+    display?: { title?: string }
+    scene: { parcels: string[]; base: string }
+  }
+  pointers: string[]
+}
+
+interface WorldSceneItem {
+  entity: WorldSceneEntity
+  parcels: string[]
+}
+
+interface WorldScenesResponse {
+  scenes: WorldSceneItem[]
+  total: number
+}
+
+/** Flattened scene for UI consumption */
+interface WorldScene {
+  title: string
+  baseParcel: string
+}
+
 /** Raw API response shape from Worlds Content Server */
 interface ContributableDomainRaw {
   name: string
@@ -142,6 +166,10 @@ export type {
   SubgraphEstate,
   SubgraphParcel,
   World,
+  WorldScene,
+  WorldSceneEntity,
+  WorldSceneItem,
+  WorldScenesResponse,
   Rental,
   RentalsQueryResponse,
   RentalsQueryResult,

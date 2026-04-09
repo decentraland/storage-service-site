@@ -34,6 +34,53 @@ const worldsContentServerHandlers = [
     })
   }),
 
+  // GET /world/{world_name}/scenes (OpenAPI: worldsContentServer_getScenes)
+  http.get(`${baseUrl()}/world/:worldName/scenes`, ({ params }) => {
+    const { worldName } = params
+    if (worldName === 'myworld.dcl.eth') {
+      return HttpResponse.json({
+        scenes: [
+          {
+            entity: {
+              metadata: {
+                display: { title: 'Scene Beta' },
+                scene: { parcels: ['1,0'], base: '1,0' }
+              },
+              pointers: ['1,0']
+            },
+            parcels: ['1,0']
+          },
+          {
+            entity: {
+              metadata: {
+                display: { title: 'Scene Alpha' },
+                scene: { parcels: ['0,0', '0,1'], base: '0,0' }
+              },
+              pointers: ['0,0']
+            },
+            parcels: ['0,0', '0,1']
+          }
+        ],
+        total: 2
+      })
+    }
+    return HttpResponse.json({
+      scenes: [
+        {
+          entity: {
+            metadata: {
+              display: { title: 'Default Scene' },
+              scene: { parcels: ['0,0'], base: '0,0' }
+            },
+            pointers: ['0,0']
+          },
+          parcels: ['0,0']
+        }
+      ],
+      total: 1
+    })
+  }),
+
   // GET /wallet/contribute (OpenAPI: worldsContentServer_getContributableDomains)
   http.get(`${baseUrl()}/wallet/contribute`, () => {
     return HttpResponse.json({

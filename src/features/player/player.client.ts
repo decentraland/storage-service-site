@@ -1,6 +1,6 @@
 import { config } from '@/config'
 import { type WrapSignedFetchError, createScopedQueryFetch, wrapSignedFetch } from '@/lib/fetch'
-import { client } from '@/services/client'
+import { type AuthParams, type StorageContext, client, storageContextId } from '@/services/client'
 import type {
   ClearPlayerParams,
   DeletePlayerValueParams,
@@ -13,19 +13,6 @@ import type {
   SetPlayerValueParams,
   StorageValueResponse
 } from './player.types'
-
-interface AuthParams {
-  wallet?: string
-  isSignedIn?: boolean
-}
-
-/** Optional realm/position for cache key — storage is scoped per world/parcel */
-interface StorageContext {
-  realm?: string | null
-  position?: string | null
-}
-
-const storageContextId = (realm?: string | null, position?: string | null): string => realm ?? position ?? ''
 
 const baseUrl = () => config.get('STORAGE_API_URL')
 

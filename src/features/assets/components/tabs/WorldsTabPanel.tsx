@@ -20,7 +20,14 @@ const WorldsTabPanel: FC<WorldsTabPanelProps> = ({ worlds }) => {
   const { search, page, paginatedItems, pageCount, totalFiltered, start, end, handleSearchChange, handleClearSearch, handlePageChange } =
     usePaginatedSearch({ items: worlds, filterFn: worldFilterFn })
 
-  const handleWorldClick = useCallback((worldName: string) => () => navigate(`/env?realm=${worldName}`), [navigate])
+  const handleEditClick = useCallback(
+    (worldName: string, position?: string) => {
+      const params = new URLSearchParams({ realm: worldName })
+      if (position) params.set('position', position)
+      navigate(`/env?${params.toString()}`)
+    },
+    [navigate]
+  )
 
   return (
     <>
@@ -35,7 +42,7 @@ const WorldsTabPanel: FC<WorldsTabPanelProps> = ({ worlds }) => {
           <Grid container spacing={2}>
             {paginatedItems.map(world => (
               <Grid item xs={12} sm={6} md={4} key={world.name}>
-                <WorldCard world={world} onClick={handleWorldClick(world.name)} />
+                <WorldCard world={world} onEditClick={handleEditClick} />
               </Grid>
             ))}
           </Grid>

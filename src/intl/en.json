@@ -20,6 +20,7 @@
     "scene": "Scene",
     "player": "Player",
     "storages": "Storages",
+    "back": "Back",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "realm": "Realm",
@@ -43,7 +44,12 @@
     "search_lands": "Search lands\u2026",
     "no_search_results": "No results for \"{query}\"",
     "clear_search": "Clear search",
-    "showing_results": "Showing {start}\u2013{end} of {total}"
+    "showing_results": "Showing {start}\u2013{end} of {total}",
+    "scenes_count": "{count} scenes",
+    "scene_count_one": "1 scene",
+    "edit": "Edit",
+    "edit_scenes": "Edit Scenes",
+    "select_scene": "Select scene"
   },
   "env_page": {
     "title": "Environment Variables",

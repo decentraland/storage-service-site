@@ -6,3 +6,6 @@ export type { UseGetWorldsResult } from './useGetWorlds'
 
 export { usePaginatedSearch } from './usePaginatedSearch'
 export type { UsePaginatedSearchOptions, UsePaginatedSearchResult } from './usePaginatedSearch'
+
+export { useWorldScenes } from './useWorldScenes'
+export type { UseWorldScenesResult } from './useWorldScenes'
