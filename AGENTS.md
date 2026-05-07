@@ -108,7 +108,7 @@ describe('when [condition]', () => {
 ### Modifying Auth Flow
 
 1. Read `docs/compounds/auth.md` first
-2. Check `jump-site` reference implementation if needed
+2. Check `sites` reference implementation (the `/jump` route) if needed
 3. Test with actual auth flow (not just unit tests)
 
 ### Adding Storage Operations
